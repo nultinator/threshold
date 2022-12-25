@@ -97,7 +97,73 @@ admin@ip-172-31-56-252:~$
 
 ## Installing Updates
 
-The first thing to do is update everything that needs updating since this distro was produced:
+The first thing to do is update everything that needs updating since this distro was produced. To do so, you must first enter the root account:
+
+```
+$ sudo -s
+$ sudo apt-get update && apt-get upgrade
+```
+
+Set up future updates to happen automatically:
+
+```
+$ sudo echo "unattended-upgrades unattended-upgrades/enable_auto_updates boolean true" | debconf-set-selections
+$ sudo apt-get -y install unattended-upgrades
+```
+
+Install a Random Number Generator
+
+```
+$ sudo apt-get install haveged -y
+```
+
+## Install Bitcoin
+
+Ensure you are working as `admin` and not `root`. To exit root shell, type `Ctrl-D`.
+
+### Add useful aliases
+
+Edit `.bash_profile` to add useful aliases. Run `ls -la` to check the contents of your instance for the `.bash_profile` file. If it does not exist, create the file. 
+
+```
+touch .bash_profile
+```
+
+Run `vim .bash_profile` to edit the file for aliases. After editing the file, press **ESC**. Then, while holding down **Shift**, press `:`. Type `wq` and press enter. 
+
+```
+alias btcdir="cd ~/.bitcoin/" #linux default bitcoind path
+alias bc="bitcoin-cli"
+alias bd="bitcoind"
+alias btcinfo='bitcoin-cli getwalletinfo | egrep "\"balance\""; bitcoin-cli getinfo | egrep "\"version\"|connections"; bitcoin-cli getmininginfo | egrep "\"blocks\"|errors"'
+alias btcblock="echo \\\`bitcoin-cli getblockcount 2>&1\\\`/\\\`wget -O - http://blockexplorer.com/testnet/q/getblockcount 2> /dev/null | cut -d : -f2 | rev | cut -c 2- | rev\\\`"
+```
+
+### Set up some some shell variables
+
+Set up two variables to make this installation more automatic. The first variable, `$BITCOIN`, should be set to the current version of Bitcoin. The second will then automatically generate a truncated form used by some of the files. 
+
+```
+$ export BITCOIN=bitcoin-core-0.21.1
+$ export BITCOINPLAIN=`echo $BITCOIN | sed 's/bitcoin-core/bitcoin/'`
+```
+
+### Download Files
+
+```
+$ wget https://bitcoin.org/bin/$BITCOIN/$BITCOINPLAIN-x86_64-linux-gnu.tar.gz
+$ wget https://bitcoin.org/bin/$BITCOIN/SHA256SUMS.asc
+$ wget https://bitcoin.org/laanwj-releases.asc
+```
+
+### Verify Bitcoin Signature
+
+Next, you should verify the Hash for the Bitcoin tar file against the expected Hash:
+
+```
+$ /usr/bin/sha256sum $BITCOINPLAIN-x86_64-linux-gnu.tar.gz | awk '{print $1}'
+$ cat SHA256SUMS.asc | grep $BITCOINPLAIN-x86_64-linux-gnu.tar.gz | awk '{print $1}'
+```
 
 
 
