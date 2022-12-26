@@ -1,5 +1,5 @@
 Steps for launching a Bitcoin Full Node on AWS EC2. Adapted from https://wolfmcnally.com/115/developer-notes-setting-up-a-bitcoin-node-on-aws/, 
-and updated to reflect actual AWS Console user journey. 
+and updated to reflect what worked best to launch my Bitcoin Full Node.  
 
 ### Initial Steps
 
