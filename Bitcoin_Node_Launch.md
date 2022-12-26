@@ -158,14 +158,95 @@ $ wget https://bitcoin.org/laanwj-releases.asc
 
 ### Verify Bitcoin Signature
 
+```
+$ /usr/bin/gpg --import laanwj-releases.asc
+$ /usr/bin/gpg --verify SHA256SUMS.asc
+```
+
+Amongst the information you get back from the last command, should be a line telling you that you have a "Good Signature". Do not worry about the warning. 
+
+### Verify Bitcoin SHA
+
 Next, you should verify the Hash for the Bitcoin tar file against the expected Hash:
 
 ```
 $ /usr/bin/sha256sum $BITCOINPLAIN-x86_64-linux-gnu.tar.gz | awk '{print $1}'
 $ cat SHA256SUMS.asc | grep $BITCOINPLAIN-x86_64-linux-gnu.tar.gz | awk '{print $1}'
 ```
+If those both produce the same number, it is OK. 
 
+### Install Bitcoin
 
+```
+$ /bin/tar xzf $BITCOINPLAIN-x86_64-linux-gnu.tar.gz
+$ sudo /usr/bin/install -m 0755 -o root -g root -t /usr/local/bin $BITCOINPLAIN/bin/*
+$ /bin/rm -rf $BITCOINPLAIN/
+```
+
+### Create Bitcoin Configuration File
+
+Create a Bitcoin configuration file for the node. Whenever the user updates and saves the configuration file, the Bitcoin node must be restarted in order for the new configuration settings to take effect. 
+
+```
+$ mkdir .bitcoin
+$ touch .bitcoin/bitcoin.conf
+$ vim bitcoin.conf
+```
+
+Paste the following settings into your `bitcoin.conf` file:
+
+```
+# Accept command line and JSON-RPC commands
+server=1
+{1}
+# Set database cache size in megabytes (4 to 16384, default: 450)
+dbcache=1536
+{1}
+# Set the number of script verification threads (-6 to 16, 0 = auto, <0 = leave that many cores free, default: 0)
+par=1
+{1}
+# Set to blocksonly mode, sends and receives no lose transactions, instead handles only complete blocks
+blocksonly=1
+{1}
+# Tries to keep outbound traffic under the given target (in MiB per 24h), 0 = no limit (default: 0)
+maxuploadtarget=137
+{1}
+# Maintain at most <n> connections to peers (default: 125)
+maxconnections=16
+{1}
+# Username for JSON-RPC connections
+rpcuser=bitcoinrpc
+{1}
+# Password for JSON-RPC connections
+rpcpassword=$(xxd -l 16 -p /dev/urandom)
+{1}
+# Allow JSON-RPC connections from, by default only localhost are allowed
+rpcallowip=127.0.0.1
+{1}
+# Use the test chain
+testnet=1
+{1}
+# Maintain a full transaction index, used by the getrawtransaction rpc call (default: 0)
+txindex=1
+{1}
+# Make the wallet broadcast transactions (default: 1)
+walletbroadcast=1
+EOF
+```
+
+**Testnet vs Mainnet**: If you want to use mainnet instead of testnet, just omit the `testnet=1` line. 
+
+Limit permissions to your configuration file:
+
+```
+$ /bin/chmod 600 .bitcoin/bitcoin.conf
+```
+
+### Start the Bitcoin Daemon
+
+```
+$ bitcoind -daemon
+```
 
 
 
