@@ -80,6 +80,8 @@ In the terminal:
 $ ssh -i /path/to/your/keypair.pem admin@xx.xx.xx.xx
 ```
 
+For EC2 VM, use `ssh -i /path/to/your/keypair.pem ec2-user@xx.xxx.xxx.xx` instead. Otherwise, you will incur the following error: `Permission denied (publickey,gssapi-keyex,gssapi-with-mic)`
+
 Successful login should show something like:
 
 ```
