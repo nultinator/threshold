@@ -259,6 +259,10 @@ class TxIn:
         # serialize prev_index, 4 bytes, little endian
         result += int_to_little_endian(self.prev_index, 4)
         # serialize the script_sig
+        '''
+        Note: script_sig below is an instantiation of the Script class imported from script.py module. (self.script_sig = Script() in the constructor)
+        "serialize" is also the name of a method within the Script class. Thus, it is using that method, not the method being defined in this block of code. 
+        '''
         result += self.script_sig.serialize()
         # serialize sequence, 4 bytes, little endian
         result += int_to_little_endian(self.sequence, 4)

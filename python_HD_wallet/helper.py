@@ -3,6 +3,7 @@ import hmac
 import ecdsa
 import codecs
 import base58
+import dill
 
 
 SIGHASH_ALL = 1
@@ -15,6 +16,35 @@ BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 # "key" refers to the private key used to authenticate the message. See glossary term on message authentication.  
 # "msg" refers to the message being encrypted. 
 # "digestmod" refers to the type of hashing algorithm being used (i.e. sha256, sha512)
+
+
+def update_files(HDWalletTree, receive_change, receiving_dict, change_dict):
+    '''
+    This helper function will save and then re-load the serialized files. 
+    This is necessary at several points because some functions use the serialized files 
+    as the source of truth. 
+    '''    
+
+    with open('HDWalletTree_dill.pkl', 'wb') as file:  
+            dill.dump(HDWalletTree, file)
+            dill.dump(receive_change, file)
+            dill.dump(receiving_dict, file)
+            dill.dump(change_dict, file)
+
+    with open('HDWalletTree_dill.pkl', 'rb') as file:
+            HDWalletTree = dill.load(file)
+            receive_change = dill.load(file)
+            receiving_dict = dill.load(file)
+            change_dict = dill.load(file)
+
+
+def to_sats(btc):
+    sats = btc*(100000000)
+    return sats
+
+def to_btc(sats):
+    btc = sats*(1/100000000)
+    return btc
 
 def hmac_sha512(key: bytes, msg: bytes) -> bytes:
     return hmac.new(key=key, msg=msg, digestmod=hashlib.sha512).digest()

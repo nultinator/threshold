@@ -330,12 +330,27 @@ class PrivateKey:
         return '{:x}'.format(self.secret).zfill(64)
 
     def sign(self, z):
+        '''
+        Steps to create a signature:
+
+        1) We are given signature hash, z, and know e such that eG = P
+        2) Choose a deterministic k based on z
+        3) Calculate R = kG and r = x coordinate of R. 
+        4) Calculate s =(z + re)/k
+        5) Instantiate a Signature class with calculated (r,s) parameters
+        6) Later, transaction verifier receives public key P. They compute z, and use P & z to verify the signature. 
+
+        Note: "z" is created from double sha256 hashing the "message" and returning in bytes form. The "message" refers to
+        the transaction object after encoded into bytes. We have to build the transaction object first, then use this process to sign.  
+         '''
+        # k is the 256 bit "random target". However, to ensure k is unique for each signature, we can make the k deterministic based on the 
+        # signature hash, z. 
         k = self.deterministic_k(z)
         # r is the x coordinate of the resulting point k*G
         r = (k * G).x.num
         # remember 1/k = pow(k, N-2, N)
         k_inv = pow(k, N - 2, N)
-        # s = (z+r*secret) / k
+        # s = (z+r*secret) / k   Note: "secret" refers to the "secret key", which is also the private key
         s = (z + r * self.secret) * k_inv % N
         if s > N / 2:
             s = N - s
