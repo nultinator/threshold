@@ -58,13 +58,21 @@ Wallet sync successfully completed.
 
 #### Display all Transactions
 
-For an existing wallet, this command displays 
+For an existing wallet, this command displays past transaction IDs associated with deposits and withdrawals in the wallet. This command lists transaction IDs along with the BTC amount transacted. The list is not ordered in any way, however, all receiving addresses are shown before the change addresses. 
 
 ```
+>> python3 wallet.py display-txn
 
+Wallet Transaction History:
+
+Transaction ID: fe21250e20d47af1a60f70f6ff500adc36632fb8447eaa384ebff90260b269e1   BTC Amount: 0.000125
+ 
+Complete
 ```
 
 #### Recover Wallet
+
+
 
 #### Display Wallet Tree
 
