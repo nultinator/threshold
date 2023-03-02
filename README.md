@@ -1,6 +1,16 @@
 # Hierarchical Deterministic Wallet
 
+The following document is a guide on setup and usage of this Python implementation of a hierarchical deterministic Bitcoin wallet (HD Wallet). Currently, the wallet can only transact Bitcoin in the P2PKH legacy address format (addresses starting with "1"). 
+
+To-Do:
+
+* Enable transactions to withdraw BTC from a single address into receiving and change addresses.
+* Enable transactions to withdraw BTC from multiple addresses into receiving and change addresses. 
+* Update BTC address format for SegWit addresses (starting with "bc1").
+
 ## Setup
+
+
 
 ## Usage
 
@@ -72,12 +82,89 @@ Complete
 
 #### Recover Wallet
 
+Recover a wallet locally using the 24 word seed and returns BTC balance if wallet recovery was successful. If an optional password was used in creating the wallet, then the password is required as well. 
 
+Keep in mind that the command line may hang for a while after successfully running the command because the recovery process can take several minutes, dependent on how many child addresses had previous transactions. Similar to many other hierarchical deterministic wallets, this wallet has a 20 address gap limit in recovering child addresses. In practice, this may not be necessary since new child addresses are not created unless the previously created child address has been transacted on the blockchain. 
+
+No password example:
+
+```
+>> python3 wallet.py recover-wallet --recovery_phrase 'stumble destroy yard mammal draw twin wood lab author fragile notable feed razor citizen exhaust affair motion hub swap mule ridge urban survey cushion'
+Wallet recovery in progress, please wait... 
+
+Wallet recovery successfully completed. Total BTC balance:0.0
+```
+
+With password example:
+
+```
+>> python3 wallet.py recover-wallet --recovery_phrase 'genius motor sauce control know spend neutral mercy surface benefit over steel dolphin fiction law festival motion spray mesh embark pyramid fun catch glide' --password '12345_%NewWallet'
+Wallet recovery in progress, please wait... 
+
+Wallet recovery successfully completed. Total BTC balance:0.0
+```
 
 #### Display Wallet Tree
 
+For an existing wallet, this command displays the hierarchical tree of the wallet.
+
+```
+>>> python3 wallet.py tree 
+
+1CLgNnPqqNtkXe48S8gUpPKqcXaCsawaen
+└── 1Cj7uSr5xb5aTF3sbtogUsiK2hBytKwtSX
+    └── 1NZH96QW3jzfFvSuVGBg27Wa9VhMxcLCTZ
+        └── 162cBExcVwDfh6ts9RmbcPTg4npvcD9Ssr
+            ├── 13Mffz9A9UqehWmL7Nxaz4E6KwF59H2ANC
+            │   ├── 12bP4dqRgr3r5BKWFQMmFSpYtL14HinPS2
+            │   ├── 13AKNRhjtbB8XsVVZggzhLwjtXJaAYvSso
+            │   ├── 14EWpuRFQbgMGgHo331n8hxDY2G7FA7J1u
+            │   ├── 14yqgrsWH9sB1ZmpnSSb2gLQeHtX6pV6Q5
+            │   ├── 196PyWrU46cQDgQjnsQEBLjTD5xYHACFGK
+            │   ├── 1A3HZB45icnLZihjE43j2kRGMdthXoBRGm
+            │   ├── 1A6UUMvAV7JwVc7N86EPthC82Jo8y6NWqa
+            │   ├── 1D3me9yCAcCWdRuEa68LHFmJcUXxNApmVY
+            │   ├── 1DgB8BELjpjQwUEUgLMJKJtmpK4AeKENay
+            │   ├── 1FSDyfz1wTmPBNSLxeTfdKkCu22L9JTP3s
+            │   ├── 1GRVBSz6uPAxbHgay2e1sHnS4nSbPTookp
+            │   ├── 1Gar5xLqNzmSqrZArEoSH8shPsyp8CqWPw
+            │   ├── 1HADqQVD9mHFCUXNCXJjdw4mKndEysxBqz
+            │   ├── 1HDLCuN9C65svg6jjsoD2Jyj5GWzAzYsEr
+            │   ├── 1JAf1a8GKtJ6ZMyiZ1jZvE6cRZReKCRv1K
+            │   ├── 1LrdejbiQnDuMaApKuV1QhjLfQEnuEzaCG
+            │   ├── 1M74M9egNummDMVunMPCCddue5i2BuY5pq
+            │   ├── 1Nthm1SRAeAfPt1K18jwDEL8iJ4sC8YYXE
+            │   ├── 1RFicJmLK9ihyKhTo3agxYNdyzYuKyJ7z
+            │   ├── 1hDRhdukexFMJeGgfKtEZbnceHv9pBcQM
+            │   └── 1xQizN1MZAcEbNskW4LNPEpqwzer7876W
+            └── 1MziiU9i9AgPJUSQdKFeQmNLDKLqg3HgxN
+                ├── 12yt1hrabX49ywwumarsyvYZSPnv5anzjs
+                ├── 13iWJ6pwGmiiDJt9DZbVZayDk9pnPFWZML
+                ├── 15XhXaTWgRoAQAhQkoHxa4ngH89YywRRSk
+                ├── 15x8tojFnFBXrmWU1G2ajsXsXCQmPrDfPG
+                ├── 16ERGjPGjDUS3bnDWZnU7s6dkQnNDQAUjy
+                ├── 16dEXkSXkvMQ9LwafsTNArfwovk1665FEy
+                ├── 17u5vJyTWtrqu1yeerVLusLW8dktmuYn4Z
+                ├── 197kmSLYKFcVoNxUx6xdRiEqCWpQpAufxy
+                ├── 1A6CWxXj8UcQaaex9a16wKV8jiWaCsJqJr
+                ├── 1BBZdgwRhHPmRjSCLF12iwsfBc2dSLDuVQ
+                ├── 1BkR2DhZyYZeFTYdsgWxAsrSQATsMGaKTJ
+                ├── 1EwDGWxyS3tHrdepXonTKeqV2dvyhfbsvs
+                ├── 1FiSdCMWFYFsiXYJKNYawaCtAak4eg3emj
+                ├── 1G8cVDxgtbhXFWRUnZFk8pm79Nba4DdC7s
+                ├── 1HofKTSz3ZTeZrVffEABrEnq37LD2eYcgk
+                ├── 1HwR1dz3A9A7HYnvvH52MwSpJRjnpD4aGt
+                ├── 1KVHa3qGrHeAnywN5Yq9HxcEpAXm1r9955
+                ├── 1KtKJbYbXyTjUt4MQky1iLohTa131eZ6yY
+                ├── 1KyBNe9imN4UrdoF8ZdFzByXD3Nfotqkww
+                ├── 1M7Y5VtnA7fsGMyqTXqGK2UsveQBo75G16
+                └── 1P9WGGVrKVHF1BybGizy5GhepRyUkpsPmF
+```
+
+
 #### Delete Existing Wallet
 
+To create a new wallet or recover a wallet, users need to ensure the existing local wallet is deleted. To delete a local wallet, simply delete the `HDWalletTree_dill.pkl` and `masterkey.pkl` files found in the working directory. 
 
 
 
