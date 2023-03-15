@@ -73,21 +73,6 @@ If wallet already exists, then program cannot create a new wallet.
 '''
 
 @click.command()
-def test_p2sh():
-    compressedkey = '02d0de0aaeaefad02b8bdc8a01a1b8b11c696bd3d66a2c5f10780d95b7df42645c'
-    compressedkeybytes = bytes.fromhex(compressedkey)
-
-    with open('masterkey.pkl', 'rb') as file2:
-            master_priv_key = dill.load(file2)
-            master_chain_code = dill.load(file2)
-            master_pub_key = dill.load(file2)
-            master_pub_address = dill.load(file2)
-            receive_priv_key = dill.load(file2)
-            receive_chain_code = dill.load(file2) 
-  
-
-
-@click.command()
 @click.option('--password', help='Add a custom password for extra security.')
 @click.option('--type', help='Default: P2WPKH. Options: p2sh, legacy')
 def create_wallet(password, type):
@@ -1176,52 +1161,7 @@ class WalletClass(object):
         fee = recommended_fee * 250
         return fee
 
-    def wallet_clean():
-
-        '''
-        This function parses the wallet and cleans up receiving and change addresses to ensure the wallet is performant
-        when user facing commands requiring address querying are executed. Some features to consider:
-
-        * Can wallet perform UTXO consolidation if the # of change addresses exceed a certain threshold? How to deal 
-        with the fees associated with UTXO consolidation? 
-
-        * Edge case: a user is transferring in BTC to a freshly generated child address. However, before the child address receives the BTC,
-        a wallet sync causes this child address to be "cleaned" due to no activity. This results in the user losing any record of this address,
-        and thus losing the BTC that is in the process of being transferred to this address. 
-        '''
-
     
-
-'''
-Child Key Derivation Functions
-
-From BIP32 specification documentation: To construct the HD wallet, CKD functions have to be run for 3 scenarios:
-
-1) Parent Extended Private Key --> Private Extended Child Key, Hardened (index >= 2^31) & Non-Hardened (index < 2^31)
-       
-2) Parent Extended Public Key --> Public Extended Child Key, Non-Hardened (index < 2^31) only
-    Note: it is not possible to derive the hardened child extended public keys.  
-
-3) Parent Extended Private Key --> Child Extended Public Key for Hardened & Non-Hardened
-    Note: The resulting child public key cannot be used for signing transactions. Therefore, it is a "neutered version".
-
-
-Basically, all private keys can be used to derive their corresponding public key, so there is no issue in using the priv_to_pub_ecdsa function, 
-even for hardened child private keys to derive their corresponding hardened child public keys. What is not allowed, however, is deriving the hardened
-child public key from the parent public key.   
-
-The reason is that if an attacker got hold of the master public key and any one of the non-hardened child private keys, they can comprise the entire wallet. 
-The attacker uses simple algebra to solve for the parent private key, which is equivalent to giving up the seed phrase:
-
-child private key = (left 32 bytes + parent private key) % n
-parent private key = (child private key - left 32 bytes) % n
-
-Per the code below, an extended parent public key can be used to derive the left 32 bytes. However, a hardened child private key would not allow this because
-the formula for calculating the left 32 bytes involve having the parent private key in hand. While this application is useful if the wallet owner needs to share public keys
-with others (for example, have others create public addresses for them), this may also be applicable for attackers looking to attack hardware wallets. 
-'''
-
-
 # Data Structure for Nodes
 
 class Node_Data(object):
@@ -1244,7 +1184,6 @@ cli.add_command(tree)
 cli.add_command(sync_wallet)
 cli.add_command(withdraw)
 cli.add_command(display_txn)
-cli.add_command(test_p2sh)
 
 if __name__ == "__main__":
     cli()

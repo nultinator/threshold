@@ -18,7 +18,7 @@ FIELD_ORDER = SECP256k1.curve.p()
 INFINITY = ecdsa.ellipticcurve.INFINITY
 
 
-
+# Below functions are not tested to be functional yet. 
 
 def to_xprv(self, *, net=None) -> str:
     payload = self.to_xprv_bytes(net=net)
@@ -59,6 +59,35 @@ def calc_fingerprint_of_this_node(self) -> bytes:
         # TODO cache this
         return hash_160(self.eckey.get_public_key_bytes(compressed=True))[0:4]
 
+
+'''
+Child Key Derivation Functions
+
+From BIP32 specification documentation: To construct the HD wallet, CKD functions have to be run for 3 scenarios:
+
+1) Parent Extended Private Key --> Private Extended Child Key, Hardened (index >= 2^31) & Non-Hardened (index < 2^31)
+       
+2) Parent Extended Public Key --> Public Extended Child Key, Non-Hardened (index < 2^31) only
+    Note: it is not possible to derive the hardened child extended public keys.  
+
+3) Parent Extended Private Key --> Child Extended Public Key for Hardened & Non-Hardened
+    Note: The resulting child public key cannot be used for signing transactions. Therefore, it is a "neutered version".
+
+
+Basically, all private keys can be used to derive their corresponding public key, so there is no issue in using the priv_to_pub_ecdsa function, 
+even for hardened child private keys to derive their corresponding hardened child public keys. What is not allowed, however, is deriving the hardened
+child public key from the parent public key.   
+
+The reason is that if an attacker got hold of the master public key and any one of the non-hardened child private keys, they can comprise the entire wallet. 
+The attacker uses simple algebra to solve for the parent private key, which is equivalent to giving up the seed phrase:
+
+child private key = (left 32 bytes + parent private key) % n
+parent private key = (child private key - left 32 bytes) % n
+
+Per the code below, an extended parent public key can be used to derive the left 32 bytes. However, a hardened child private key would not allow this because
+the formula for calculating the left 32 bytes involve having the parent private key in hand. While this application is useful if the wallet owner needs to share public keys
+with others (for example, have others create public addresses for them), this may also be applicable for attackers looking to attack hardware wallets. 
+'''
 
 class ChildPublicKey(object):
 
