@@ -1,8 +1,11 @@
+# Import Python Crypto Libraries & Dev Tools
 from io import BytesIO
 from random import randint
-
 import hashlib
 import hmac
+
+# Import Python HD Wallet Modules
+from helper import *
 
 class FieldElement:
 
@@ -74,8 +77,7 @@ class FieldElement:
     def __rmul__(self, coefficient):
         num = (self.num * coefficient) % self.prime
         return self.__class__(num=num, prime=self.prime)
-
-
+    
 class Point:
 
     def __init__(self, x, y, a, b):
@@ -155,7 +157,12 @@ class Point:
             y = s * (self.x - x) - self.y
             return self.__class__(x, y, self.a, self.b)
 
+
     def __rmul__(self, coefficient):
+        '''
+        This multiplication method is known as the "Double and Add" method. Karpathy also has this method in his Point class. 
+        NOTE: To multiply a private key by G to obtain the public key, use this method rather than the __rmul__ method from S256Point 
+        '''
         coef = coefficient
         current = self
         result = self.__class__(None, None, self.a, self.b)
@@ -166,15 +173,10 @@ class Point:
             coef >>= 1
         return result
 
-
 A = 0
 B = 7
 P = 2**256 - 2**32 - 977
 N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
-#G = S256Point(
-#    0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,
-#    0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
-
 
 class S256Field(FieldElement):
 
@@ -205,6 +207,12 @@ class S256Point(Point):
 
     def __rmul__(self, coefficient):
         coef = coefficient % N
+        
+        #super() is a python method that allows for sub-classes to inherit the attributes and methods of other classes.
+        #In this case, class S256Point is a subclass that inherits the __rmul__ method of the Point class. The __rmul__ method of
+        #S256Point takes implicit self and explicit coefficient as two arguments. We find the modulo of coefficient w.r.t. N, and 
+        #find the __rmul__ of that result.  
+        
         return super().__rmul__(coef)
 
     def verify(self, z, sig):
@@ -215,7 +223,7 @@ class S256Point(Point):
         return total.x.num == sig.r
     
     def sec(self, compressed=True):
-        '''returns the binary version of the SEC format'''
+        # returns the binary version of the SEC format
         # if compressed, starts with b'\x02' if self.y.num is even, b'\x03' if self.y is odd
         # then self.x.num
         # remember, you have to convert self.x.num/self.y.num to binary (some_integer.to_bytes(32, 'big'))
@@ -230,10 +238,10 @@ class S256Point(Point):
                 self.y.num.to_bytes(32, 'big')
 
     def hash160(self, compressed=True):
-        return hash160(self.sec(compressed))
+        return two_round_hash160(self.sec(compressed))
 
     def address(self, compressed=True, testnet=False):
-        '''Returns the address string'''
+        # Returns the address string
         h160 = self.hash160(compressed)
         if testnet:
             prefix = b'\x6f'
@@ -243,7 +251,7 @@ class S256Point(Point):
 
     @classmethod
     def parse(self, sec_bin):
-        '''returns a Point object from a SEC binary (not hex)'''
+        # returns a Point object from a SEC binary (not hex)
         if sec_bin[0] == 4:
             x = int.from_bytes(sec_bin[1:33], 'big')
             y = int.from_bytes(sec_bin[33:65], 'big')
@@ -264,7 +272,11 @@ class S256Point(Point):
             return S256Point(x, even_beta)
         else:
             return S256Point(x, odd_beta)
+        
+# Constants for the scepk256 curve equation
 
+
+# Generator point. The starting point on the curve's cycle, which is publicly known, and is used to kick off the "random walk" around the curve. 
 G = S256Point(
     0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798,
     0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8)
@@ -322,9 +334,9 @@ class Signature:
 
 class PrivateKey:
 
-    def __init__(self, secret):
-        self.secret = secret
-        self.point = secret * G 
+    def __init__(self, secret_key):
+        self.secret = big_endian_to_int(secret_key)
+        self.point = big_endian_to_int(secret_key) * G 
     
     def hex(self):
         return '{:x}'.format(self.secret).zfill(64)
@@ -340,14 +352,16 @@ class PrivateKey:
         5) Instantiate a Signature class with calculated (r,s) parameters
         6) Later, transaction verifier receives public key P. They compute z, and use P & z to verify the signature. 
 
-        Note: "z" is created from double sha256 hashing the "message" and returning in bytes form. The "message" refers to
+        Note: "z" is created from double sha256 hashing the "message" and returning in integer form. The "message" refers to
         the transaction object after encoded into bytes. We have to build the transaction object first, then use this process to sign.  
          '''
         # k is the 256 bit "random target". However, to ensure k is unique for each signature, we can make the k deterministic based on the 
         # signature hash, z. 
+        # NOTE: k is not the same as secret_key. secret_key is your private key. k is a "random target" used in ECDSA to help create the signature. 
         k = self.deterministic_k(z)
         # r is the x coordinate of the resulting point k*G
-        r = (k * G).x.num
+        P = k * G
+        r = (P).x.num
         # remember 1/k = pow(k, N-2, N)
         k_inv = pow(k, N - 2, N)
         # s = (z+r*secret) / k   Note: "secret" refers to the "secret key", which is also the private key
@@ -355,12 +369,13 @@ class PrivateKey:
         if s > N / 2:
             s = N - s
         # return an instance of Signature:
-        # Signature(r, s)
         return Signature(r, s)
     
     def deterministic_k(self, z):
         k = b'\x00' * 32
         v = b'\x01' * 32
+        # z = Signature hash that needs to be signed to produce DER signature
+        # N = Finite field. This is a given constant. 
         if z > N:
             z -= N
         z_bytes = z.to_bytes(32, 'big')
@@ -393,148 +408,3 @@ class PrivateKey:
             suffix = b''
         # encode_base58_checksum the whole thing
         return encode_base58_checksum(prefix + secret_bytes + suffix)
-
-
-class FieldElement:
-
-    def __init__(self, num, prime):
-        if num >= prime or num < 0:
-            error = 'Num {} not in field range 0 to {}'.format(
-                num, prime - 1
-            )
-            raise ValueError(error)
-        self.num = num
-        self.prime = prime
-    
-    def __repr__(self):
-        return 'FieldElement_{}({})'.format(self.prime, self.num)
-
-    def __eq__(self, other):
-        if other is None:
-            return False
-        return self.num == other.num and self.prime == other.prime
-
-    def __add__(self, other):
-        if self.prime != other.prime:
-            raise TypeError('Cannot add two numbers in different Fields')
-        num = (self.num + other.num) % self.prime
-        return self.__class__(num, self.prime)
-
-    def __sub__(self, other):
-        if self.prime != other.prime:
-            raise TypeError('Cannot subtract two numbers in different Fields')
-        num = (self.num - other.num) % self.prime
-        return self.__class__(num, self.prime)
-
-    def __mul__(self, other):
-        if self.prime != other.prime:
-            raise TypeError('Cannot multiply two numbers in different Fields')
-        num = (self.num * other.num) % self.prime
-        return self.__class__(num, self.prime)
-
-    def __pow__(self, exponent):
-        n = exponent % (self.prime - 1)
-        num = pow(self.num, n, self.prime)
-        return self.__class__(num, self.prime)
-
-    def __truediv__(self, other):
-        if self.prime != other.prime:
-            raise TypeError('Cannot divide two numbers in different Fields')
-        # self.num and other.num are the actual values
-        # self.prime is what we need to mod against
-        # use fermat's little theorem:
-        # self.num**(p-1) % p == 1
-        # this means:
-        # 1/n == pow(n, p-2, p)
-        num = (self.num * pow(other.num, self.prime - 2, self.prime)) % self.prime
-        # We return an element of the same class
-        return self.__class__(num, self.prime)
-
-    def __rmul__(self, coefficient):
-        num = (self.num * coefficient) % self.prime
-        return self.__class__(num=num, prime=self.prime)
-    
-
-class Point:
-
-    def __init__(self, x, y, a ,b):
-        self.a = a
-        self.b = b
-        self.x = x
-        self.y = y
-        if self.x is None and self.y is None:
-            return
-        if self.y**2 != self.x**3 + a * x + b:
-            raise ValueError('({}, {}) is not on the curve'.format(x,y))
-    
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y \
-            and self.a == other.a and self.b == other.b
-
-    def __ne__(self, other):
-        # this should be the inverse of the == operator
-        return not (self == other)
-
-    def __repr__(self):
-        if self.x is None:
-            return 'Point(infinity)'
-        elif isinstance(self.x, FieldElement):
-            return 'Point({},{})_{}_{} FieldElement({})'.format(
-                self.x.num, self.y.num, self.a.num, self.b.num, self.x.prime)
-        else:
-            return 'Point({},{})_{}_{}'.format(self.x, self.y, self.a, self.b)
-
-    def __add__(self, other):
-        if self.a != other.a or self.b != other.b:
-            raise TypeError('Points {}, {} are not on the same curve'.format(self, other))
-        # Case 0.0: self is the point at infinity, return other
-        if self.x is None:
-            return other
-        # Case 0.1: other is the point at infinity, return self
-        if other.x is None:
-            return self
-
-        # Case 1: self.x == other.x, self.y != other.y
-        # Result is point at infinity
-        if self.x == other.x and self.y != other.y:
-            return self.__class__(None, None, self.a, self.b)
-
-        # Case 2: self.x ≠ other.x
-        # Formula (x3,y3)==(x1,y1)+(x2,y2)
-        # s=(y2-y1)/(x2-x1)
-        # x3=s**2-x1-x2
-        # y3=s*(x1-x3)-y1
-        if self.x != other.x:
-            s = (other.y - self.y) / (other.x - self.x)
-            x = s**2 - self.x - other.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x, y, self.a, self.b)
-
-        # Case 4: if we are tangent to the vertical line,
-        # we return the point at infinity
-        # note instead of figuring out what 0 is for each type
-        # we just use 0 * self.x
-        if self == other and self.y == 0 * self.x:
-            return self.__class__(None, None, self.a, self.b)
-
-        # Case 3: self == other
-        # Formula (x3,y3)=(x1,y1)+(x1,y1)
-        # s=(3*x1**2+a)/(2*y1)
-        # x3=s**2-2*x1
-        # y3=s*(x1-x3)-y1
-        if self == other:
-            s = (3 * self.x**2 + self.a) / (2 * self.y)
-            x = s**2 - 2 * self.x
-            y = s * (self.x - x) - self.y
-            return self.__class__(x, y, self.a, self.b)
-
-    def __rmul__(self, coefficient):
-        coef = coefficient
-        current = self
-        result = self.__class__(None, None, self.a, self.b)
-        while coef:
-            if coef & 1:
-                result += current
-            current += current
-            coef >> 1
-        return result

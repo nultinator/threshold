@@ -1,12 +1,10 @@
-from io import BytesIO
 from logging import getLogger
-from unittest import TestCase
 
 from helper import (
     encode_varint,
     int_to_little_endian,
     little_endian_to_int,
-    read_varint,
+    read_varint
 )
 from op import (
     OP_CODE_FUNCTIONS,
@@ -23,6 +21,9 @@ def p2pkh_script(h160):
 
 LOGGER = getLogger(__name__)
 
+def encode_int(i, nbytes, encoding='little'):
+    """ encode integer i into nbytes bytes using a given byte ordering """
+    return i.to_bytes(nbytes, encoding)
 
 class Script:
 
@@ -163,8 +164,24 @@ class Script:
             else:
                 # add the cmd to the stack
                 stack.append(cmd)
+                
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
             return False
         return True
+
+    def encode(self):
+        out = []
+        for cmd in self.cmds:
+            if isinstance(cmd, int):
+                # an int is just an opcode, encode as a single byte
+                out += [encode_int(cmd, 1)]
+            elif isinstance(cmd, bytes):
+                # bytes represent an element, encode its length and then content
+                length = len(cmd)
+                assert length < 75 # any longer than this requires a bit of tedious handling that we'll skip here
+                out += [encode_int(length, 1), cmd]
+
+        ret = b''.join(out)
+        return encode_varint(len(ret)) + ret

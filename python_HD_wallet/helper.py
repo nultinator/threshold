@@ -1,9 +1,11 @@
+# Import Python Crypto Libraries & Dev Tools
 import hashlib
 import hmac
 import ecdsa
 import codecs
 import base58
 import dill
+from enum import Enum
 
 
 SIGHASH_ALL = 1
@@ -18,6 +20,10 @@ BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 # "digestmod" refers to the type of hashing algorithm being used (i.e. sha256, sha512)
 
 
+def encode_int(i, nbytes, encoding='little'):
+    """ encode integer i into nbytes bytes using a given byte ordering """
+    return i.to_bytes(nbytes, encoding)
+
 def update_files(HDWalletTree, receive_change, receiving_dict, change_dict):
     '''
     This helper function will save and then re-load the serialized files. 
@@ -25,13 +31,13 @@ def update_files(HDWalletTree, receive_change, receiving_dict, change_dict):
     as the source of truth. 
     '''    
 
-    with open('HDWalletTree_dill.pkl', 'wb') as file:  
+    with open('wallet/wallet.pkl', 'wb') as file:  
             dill.dump(HDWalletTree, file)
             dill.dump(receive_change, file)
             dill.dump(receiving_dict, file)
             dill.dump(change_dict, file)
 
-    with open('HDWalletTree_dill.pkl', 'rb') as file:
+    with open('wallet/wallet.pkl', 'rb') as file:
             HDWalletTree = dill.load(file)
             receive_change = dill.load(file)
             receiving_dict = dill.load(file)
@@ -39,7 +45,7 @@ def update_files(HDWalletTree, receive_change, receiving_dict, change_dict):
 
 
 def to_sats(btc):
-    sats = btc*(100000000)
+    sats = btc*100000000
     return sats
 
 def to_btc(sats):
@@ -83,7 +89,10 @@ def read_varint(s):
 
 
 def encode_varint(i):
-    '''encodes an integer as a varint'''
+    '''encodes an integer as a varint
+    Varint refers to "variable-width integer". 
+    '''
+
     if i < 0xfd:
         return bytes([i])
     elif i < 0x10000:
@@ -96,7 +105,7 @@ def encode_varint(i):
         raise ValueError('integer too large: {}'.format(i))
 
 
-def pubkey_to_address(pubkey):
+def pub_to_legacy(pubkey):
 
     # Perform SHA-256 hashing on the public key. 
     # Perform RIPEMD-160 hashing on SHA-256 result:
@@ -129,12 +138,12 @@ def priv_to_pub_ecdsa(priv_key) -> bytes:
     return pub_key
 
 
-def hash160(s):
+def two_round_hash160(s):
     '''sha256 followed by ripemd160'''
     return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
 
 
-def hash256(s):
+def two_round_hash256(s):
     '''two rounds of sha256'''
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
 
@@ -158,7 +167,7 @@ def encode_base58(s):
 
 
 def encode_base58_checksum(s):
-    return encode_base58(s + hash256(s)[:4])
+    return encode_base58(s + two_round_hash256(s)[:4])
 
 
 # tag::source1[]
@@ -169,11 +178,61 @@ def decode_base58(s):
         num += BASE58_ALPHABET.index(c)
     combined = num.to_bytes(25, byteorder='big')  # <2>
     checksum = combined[-4:]
-    if hash256(combined[:-4])[:4] != checksum:
+    if two_round_hash256(combined[:-4])[:4] != checksum:
         raise ValueError('bad address: {} {}'.format(checksum, 
-          hash256(combined[:-4])[:4]))
+          two_round_hash256(combined[:-4])[:4]))
     return combined[1:-4]  # <3>
 # end::source1[]
+
+
+def bytes_to_WIF(s):
+    '''Convert Private Key from bytes format to WIF format'''
+
+    # convert bytes into 64 character, 32 byte, long hexadecimal format.
+    privkey = s.hex() 
+
+    # Add a 0x80 byte in front for mainnet address.
+    privkey_80 = ('80' + privkey)
+
+    # Perform two rounds of SHA-256 hash on the extended key.
+    privkey_80_hashed = two_round_hash256(bytes.fromhex(privkey_80))
+
+    # Take the first four bytes of the result (this is the checksum).  
+    firstfour = privkey_80_hashed[0:4]
+
+    # Add the checksum to the end of the extended key.
+    stepsix = privkey_80 + firstfour.hex()
+
+    # Convert the result into a base58 string using base58 encoding. This is the WIF format. 
+    WIFformat = encode_base58(bytes.fromhex(stepsix))
+
+    return WIFformat
+
+
+def uncompress_to_compress(pubkey: bytes):
+    '''Converts an uncompressed public key to compressed SEC version'''
+    # Check if public key is uncompressed
+    if len(pubkey) != 130:
+        print('Public key is not in uncompressed SEC format')
+    else:
+        # Extract x & y coordinates from uncompressed public key
+        x_coor = pubkey[2:66]
+        y_coor = pubkey[66:]
+
+        # Convert y to hex, check if y is even or odd.
+        # Append the x coordinate in 32 bytes as big-endian integer to the appropriate prefix. 
+        if int(y_coor.hex()) % 2 == 0:
+            return b'\x02' + x_coor
+        else:
+            return b'\x03' + x_coor
+    
+
+
+
+
+
+
+
 
 
 
