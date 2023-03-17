@@ -4,22 +4,22 @@ The following document is a guide on setup and usage of this Python implementati
 
 Planned updates:
 
-* Build and broadcast a successful BTC transaction using multiple inputs to two outputs (target address & change address). This should be achieved for legacy, p2sh, and bech32 addresses. 
-* Demonstrate the ability to succesfully 
+* Build and broadcast a successful BTC transaction using multiple inputs and two outputs (target address & change address). This should be achieved for legacy, p2sh, and bech32 addresses. 
+* Demonstrate the ability to successfully recover a wallet that was created by this HD Wallet program, on either an Electrum or hardware wallet (e.g. Trezor T or Ledger Nano). This should be achieved for legacy, p2sh, and bech32 addresses. 
 
 
 ## Setup
 
 ### Linux
 
-The following steps are for a new AWS EC2 Linux instance:
+The following setup steps are for a new AWS EC2 Linux instance:
 
-1) After logging into your instance, run `sudo yum update -y` and `sudo yum install git -y` to both update the instance and install git. 
-2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token for Password. 
+1) After logging into your instance, run `sudo yum update -y` and `sudo yum install git -y` to update the instance and install git. 
+2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token when prompted for a password. 
 3) Run `ls -la` and double check the directory `Threshold-HD-Wallet` exists. 
 4) Install the latest version of Python 3 by running `sudo yum install python37`. Run `python3 --version` to ensure you have the latest version of Python 3 installed. 
 5) Run `python3 get-pip.py --user` to install pip. 
-6) Once the latest version of pip has been confirmed installed, navigate into the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` directory. Install Python virtual environment by running `pip install virtualenv --user`.
+6) Once the latest version of pip has been installed, navigate to the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` sub-directory. Install Python virtual environment by running `pip install virtualenv --user`.
 7) Activate the virtual environment by running `. .venv/bin/activate`.
 8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
 9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
@@ -29,14 +29,27 @@ The following steps are for a new AWS EC2 Linux instance:
 The following steps are for setting up the Python Wallet on your MacOS computer:
 
 1) Ensure you have the latest versions of Python 3 and pip installed. 
-2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token for Password.
-3) Navigate into the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` directory. Install Python virtual environment by running `pip install virtualenv --user`.
+2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token when prompted for a password. 
+3) Navigate to the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` sub-directory. Install Python virtual environment by running `pip install virtualenv --user`.
 7) Activate the virtual environment by running `. .venv/bin/activate`.
 8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
 9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
 
 
 ## Usage
+
+### Contents
+
+* [Create a New Wallet](#create-a-new-wallet)
+* [Check Wallet Balance](#check-wallet-balance)
+* [Deposit BTC](#deposit-btc)
+* [Withdraw BTC](#withdraw-btc)
+* [Sync Wallet Balance](#sync-wallet-balance)
+* [Display Transactions](#display-transactions)
+* [Recover Wallet](#recover-wallet)
+* [Display Wallet Tree Hierarchy](#display-wallet-tree)
+* [Delete an Existing Wallet](#delete-existing-wallet)
+
 
 #### Create a New Wallet
 
@@ -45,7 +58,6 @@ The `create-wallet` command creates a local wallet and outputs the 24-word mnemo
 The following animation shows the process of creating a new p2sh address type wallet with a user designated password of *12345_%NewWallet*. The *deposit* command then displays a new receiving child address and the *tree* command displays the entire tree hierarchy of the wallet:
 
 ![](https://github.com/tycm4109/Threshold-HD-Wallet/blob/main/Readme%20GIFs/create_wallet.gif)
-
 
 #### Check Wallet Balance
 
@@ -59,7 +71,7 @@ BTC Balance: 0.0
 
 #### Deposit BTC
 
-For an existing wallet, you can generate a child BTC address for deposits. New child BTC addresses will not be generated unless an existing child BTC address has already had transactions on the blockchain:
+For an existing wallet, you can generate a child BTC address for deposits. New child BTC addresses are not generated unless the previous index child BTC address already had UTXOs on the blockchain:
 
 ```
 >> python3 wallet.py deposit
@@ -69,9 +81,11 @@ Send only BTC to this address: 18LMcFA4C5ybAPchb4po1W8cQPHeue8SwW
 
 #### Withdraw BTC
 
+In development. 
+
 #### Sync Wallet Balance
 
-For an existing wallet, the wallet needs to be sync'ed with the blockchain in order to display the correct wallet balance. This would be similar to a "Refresh" feature on front-end client:
+For an existing wallet, the wallet needs to be sync'ed with the blockchain in order to display the correct wallet balance. This would be similar to a "Refresh" feature on a front-end client:
 
 ```
 >>> python3 wallet.py sync-wallet
@@ -79,9 +93,9 @@ For an existing wallet, the wallet needs to be sync'ed with the blockchain in or
 Wallet sync successfully completed.
 ```
 
-#### Display all Transactions
+#### Display Transactions
 
-For an existing wallet, this command displays past transaction IDs associated with deposits and withdrawals in the wallet. This command lists transaction IDs along with the BTC amount transacted. The list is not ordered in any way, however, all receiving addresses are shown before the change addresses. 
+For an existing wallet, this command displays past transaction IDs associated with deposits and withdrawals in the wallet, as well as the BTC amount transacted. The list is not ordered in any way, however, all receiving addresses are shown before the change addresses. 
 
 ```
 >> python3 wallet.py display-txn
@@ -95,89 +109,20 @@ Complete
 
 #### Recover Wallet
 
-Recover a wallet locally using the 24 word seed and returns BTC balance if wallet recovery was successful. If an optional password was used in creating the wallet, then the password is required as well. 
+This function recovers a wallet locally using the 24-word mnemonic, and returns the BTC balance if wallet recovery was successful. If an optional password was used in creating the wallet, then the password is required as well. 
 
-Keep in mind that the command line may hang for a while after successfully running the command because the recovery process can take several minutes, dependent on how many child addresses had previous transactions. Similar to many other hierarchical deterministic wallets, this wallet has a 20 address gap limit in recovering child addresses. In practice, this may not be necessary since new child addresses are not created unless the previously created child address has been transacted on the blockchain. 
+Keep in mind the command line may hang for a while after successfully running the command because the recovery process can take several minutes, depending on how many child addresses had UTXOs. Similar to many other hierarchical deterministic wallets, this wallet has a 20 address gap limit in recovering child addresses. In practice, this may not be necessary since new child addresses are not created unless the previously created child address has UTXOs. 
 
-No password example:
-
-```
->> python3 wallet.py recover-wallet --recovery_phrase 'stumble destroy yard mammal draw twin wood lab author fragile notable feed razor citizen exhaust affair motion hub swap mule ridge urban survey cushion'
-Wallet recovery in progress, please wait... 
-
-Wallet recovery successfully completed. Total BTC balance:0.0
-```
-
-With password example:
-
-```
->> python3 wallet.py recover-wallet --recovery_phrase 'genius motor sauce control know spend neutral mercy surface benefit over steel dolphin fiction law festival motion spray mesh embark pyramid fun catch glide' --password '12345_%NewWallet'
-Wallet recovery in progress, please wait... 
-
-Wallet recovery successfully completed. Total BTC balance:0.0
-```
+![](https://github.com/tycm4109/Threshold-HD-Wallet/blob/main/Readme%20GIFs/wallet_recovery.gif)
 
 #### Display Wallet Tree
 
 For an existing wallet, this command displays the hierarchical tree of the wallet.
 
-```
->>> python3 wallet.py tree 
-
-1CLgNnPqqNtkXe48S8gUpPKqcXaCsawaen
-└── 1Cj7uSr5xb5aTF3sbtogUsiK2hBytKwtSX
-    └── 1NZH96QW3jzfFvSuVGBg27Wa9VhMxcLCTZ
-        └── 162cBExcVwDfh6ts9RmbcPTg4npvcD9Ssr
-            ├── 13Mffz9A9UqehWmL7Nxaz4E6KwF59H2ANC
-            │   ├── 12bP4dqRgr3r5BKWFQMmFSpYtL14HinPS2
-            │   ├── 13AKNRhjtbB8XsVVZggzhLwjtXJaAYvSso
-            │   ├── 14EWpuRFQbgMGgHo331n8hxDY2G7FA7J1u
-            │   ├── 14yqgrsWH9sB1ZmpnSSb2gLQeHtX6pV6Q5
-            │   ├── 196PyWrU46cQDgQjnsQEBLjTD5xYHACFGK
-            │   ├── 1A3HZB45icnLZihjE43j2kRGMdthXoBRGm
-            │   ├── 1A6UUMvAV7JwVc7N86EPthC82Jo8y6NWqa
-            │   ├── 1D3me9yCAcCWdRuEa68LHFmJcUXxNApmVY
-            │   ├── 1DgB8BELjpjQwUEUgLMJKJtmpK4AeKENay
-            │   ├── 1FSDyfz1wTmPBNSLxeTfdKkCu22L9JTP3s
-            │   ├── 1GRVBSz6uPAxbHgay2e1sHnS4nSbPTookp
-            │   ├── 1Gar5xLqNzmSqrZArEoSH8shPsyp8CqWPw
-            │   ├── 1HADqQVD9mHFCUXNCXJjdw4mKndEysxBqz
-            │   ├── 1HDLCuN9C65svg6jjsoD2Jyj5GWzAzYsEr
-            │   ├── 1JAf1a8GKtJ6ZMyiZ1jZvE6cRZReKCRv1K
-            │   ├── 1LrdejbiQnDuMaApKuV1QhjLfQEnuEzaCG
-            │   ├── 1M74M9egNummDMVunMPCCddue5i2BuY5pq
-            │   ├── 1Nthm1SRAeAfPt1K18jwDEL8iJ4sC8YYXE
-            │   ├── 1RFicJmLK9ihyKhTo3agxYNdyzYuKyJ7z
-            │   ├── 1hDRhdukexFMJeGgfKtEZbnceHv9pBcQM
-            │   └── 1xQizN1MZAcEbNskW4LNPEpqwzer7876W
-            └── 1MziiU9i9AgPJUSQdKFeQmNLDKLqg3HgxN
-                ├── 12yt1hrabX49ywwumarsyvYZSPnv5anzjs
-                ├── 13iWJ6pwGmiiDJt9DZbVZayDk9pnPFWZML
-                ├── 15XhXaTWgRoAQAhQkoHxa4ngH89YywRRSk
-                ├── 15x8tojFnFBXrmWU1G2ajsXsXCQmPrDfPG
-                ├── 16ERGjPGjDUS3bnDWZnU7s6dkQnNDQAUjy
-                ├── 16dEXkSXkvMQ9LwafsTNArfwovk1665FEy
-                ├── 17u5vJyTWtrqu1yeerVLusLW8dktmuYn4Z
-                ├── 197kmSLYKFcVoNxUx6xdRiEqCWpQpAufxy
-                ├── 1A6CWxXj8UcQaaex9a16wKV8jiWaCsJqJr
-                ├── 1BBZdgwRhHPmRjSCLF12iwsfBc2dSLDuVQ
-                ├── 1BkR2DhZyYZeFTYdsgWxAsrSQATsMGaKTJ
-                ├── 1EwDGWxyS3tHrdepXonTKeqV2dvyhfbsvs
-                ├── 1FiSdCMWFYFsiXYJKNYawaCtAak4eg3emj
-                ├── 1G8cVDxgtbhXFWRUnZFk8pm79Nba4DdC7s
-                ├── 1HofKTSz3ZTeZrVffEABrEnq37LD2eYcgk
-                ├── 1HwR1dz3A9A7HYnvvH52MwSpJRjnpD4aGt
-                ├── 1KVHa3qGrHeAnywN5Yq9HxcEpAXm1r9955
-                ├── 1KtKJbYbXyTjUt4MQky1iLohTa131eZ6yY
-                ├── 1KyBNe9imN4UrdoF8ZdFzByXD3Nfotqkww
-                ├── 1M7Y5VtnA7fsGMyqTXqGK2UsveQBo75G16
-                └── 1P9WGGVrKVHF1BybGizy5GhepRyUkpsPmF
-```
-
 
 #### Delete Existing Wallet
 
-To create a new wallet or recover a wallet, users need to ensure the existing local wallet is deleted. To delete a local wallet, simply delete the `HDWalletTree_dill.pkl` and `masterkey.pkl` files found in the working directory. 
+To create a new wallet or recover an existing wallet from a 24-word mnemonic, users need to ensure no local wallet file already exists. To delete an existing local wallet, simply delete the *wallet* directory containing the *wallet.pkl* and *masterkey.pkl* files.  
 
 
 
