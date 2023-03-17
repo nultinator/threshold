@@ -2,9 +2,11 @@
 
 The following document is a guide on setup and usage of this Python implementation of a hierarchical deterministic Bitcoin wallet (HD Wallet). 
 
-Future implementation:
+Planned updates:
 
-* 
+* Build and broadcast a successful BTC transaction using multiple inputs to two outputs (target address & change address). This should be achieved for legacy, p2sh, and bech32 addresses. 
+* Demonstrate the ability to succesfully 
+
 
 ## Setup
 
@@ -38,23 +40,12 @@ The following steps are for setting up the Python Wallet on your MacOS computer:
 
 #### Create a New Wallet
 
-The `create-wallet` command creates a local wallet and outputs the 24-word mnemonic required for wallet recovery. This command also allows the user to optionally add in a password for extra security. If a local wallet already exists in the user's directory, this command will not create a new wallet. Instead, the user must delete the existing wallet files (delete the `HDWalletTree.dill.pkl` and `masterkey.pkl` files) before this command can create a new wallet. 
+The `create-wallet` command creates a local wallet and outputs the 24-word mnemonic required for wallet recovery. This command also allows the user to optionally add in a password for extra security. The password can be any combination of numbers, letters, and special characters, as long as it does not contain the exact same characters as linux/shell commands (i.e. && or ||). If a local wallet already exists in the user's directory, this command will not create a new wallet unless the user deletes the wallet directory containing the *wallet.pkl* and *masterkey.pkl* files. 
 
-Create a wallet:
+The following animation shows the process of creating a new p2sh address type wallet with a user designated password of *12345_%NewWallet*. The *deposit* command then displays a new receiving child address and the *tree* command displays the entire tree hierarchy of the wallet:
 
-```
->> python3 wallet.py create-wallet
+![](https://github.com/tycm4109/Threshold-HD-Wallet/blob/main/Readme%20GIFs/create_wallet.gif)
 
-24 Word Mnemonic: cause question start option wheel auto hand razor razor scan paper nasty olive jeans category quarter elbow drill keen clerk simple market antenna tube
-```
-
-Optionally add in password for extra security in wallet recovery. Your password can be any combination of numbers, letters, and special characters, as long as it does not contain the exact same characters as linux/shell commands (i.e. && or ||):
-
-```
->> python3 wallet.py create-wallet --password 12345_%NewWallet
-
-24 Word Mnemonic: genius motor sauce control know spend neutral mercy surface benefit over steel dolphin fiction law festival motion spray mesh embark pyramid fun catch glide
-```
 
 #### Check Wallet Balance
 
