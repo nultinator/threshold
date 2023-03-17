@@ -1,15 +1,37 @@
 # Hierarchical Deterministic Wallet
 
-The following document is a guide on setup and usage of this Python implementation of a hierarchical deterministic Bitcoin wallet (HD Wallet). Currently, the wallet can only transact Bitcoin in the P2PKH legacy address format (addresses starting with "1"). 
+The following document is a guide on setup and usage of this Python implementation of a hierarchical deterministic Bitcoin wallet (HD Wallet). 
 
-To-Do:
+Future implementation:
 
-* Enable transactions to withdraw BTC from a single address into receiving and change addresses.
-* Enable transactions to withdraw BTC from multiple addresses into receiving and change addresses. 
-* Update BTC address format for SegWit addresses (starting with "bc1").
+* 
 
 ## Setup
 
+### Linux
+
+The following steps are for a new AWS EC2 Linux instance:
+
+1) After logging into your instance, run `sudo yum update -y` and `sudo yum install git -y` to both update the instance and install git. 
+2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token for Password. 
+3) Run `ls -la` and double check the directory `Threshold-HD-Wallet` exists. 
+4) Install the latest version of Python 3 by running `sudo yum install python37`. Run `python3 --version` to ensure you have the latest version of Python 3 installed. 
+5) Run `python3 get-pip.py --user` to install pip. 
+6) Once the latest version of pip has been confirmed installed, navigate into the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` directory. Install Python virtual environment by running `pip install virtualenv --user`.
+7) Activate the virtual environment by running `. .venv/bin/activate`.
+8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
+9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
+
+### MacOS
+
+The following steps are for setting up the Python Wallet on your MacOS computer:
+
+1) Ensure you have the latest versions of Python 3 and pip installed. 
+2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. Enter `tycm4109` as the Username and enter the Personal Access Token for Password.
+3) Navigate into the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` directory. Install Python virtual environment by running `pip install virtualenv --user`.
+7) Activate the virtual environment by running `. .venv/bin/activate`.
+8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
+9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
 
 
 ## Usage
