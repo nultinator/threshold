@@ -3,6 +3,8 @@ from hdwallet.utils import generate_entropy
 from hdwallet.symbols import BTC as SYMBOL
 from typing import Optional
 import json
+import requests
+from blockstream import blockexplorer
 
 #256 represents a 24 word seed phrase, less strength means less words... pretty simple
 STRENGTH: int = 256
@@ -76,5 +78,29 @@ assert len(p2sh) == 34
 assert len(p2wpkh) == 42
 assert len(p2wsh) == 62
 print("Address length: passed")
+
+
+print("Satoshi balance test")
+SATOSHI = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"
+address = blockexplorer.get_address(SATOSHI)
+print("Satoshi's Address", SATOSHI, "INFO")
+balance = (address.chain_stats["funded_txo_sum"])/100_000_000
+sat_balance = address.chain_stats["funded_txo_sum"]
+print("Balance", balance)
+print("Balance in SATS", sat_balance)
+assert balance != 0
+print("Satoshi's Balance: PASSED")
+
+
+print("UTXO Test")
+outputs = blockexplorer.get_address_transactions(SATOSHI)
+for output in outputs:
+    Dict = output.serialized()
+    print(output.id)
+    print(output.vout[0]["value"], "sats")
+    print(output.vout[0]["value"]/100_000_000, "BTC")
+assert type(outputs) == list
+print("UTXO Test: PASSED")
+
 
 print("ALL TESTS PASSED")

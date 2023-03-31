@@ -6,6 +6,8 @@ from hdwallet.utils import generate_entropy
 from hdwallet.symbols import BTC as SYMBOL
 from typing import Optional
 import json
+import requests
+from os import path
 
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -38,6 +40,19 @@ def create_wallet():
 running = False
 
 print("Welcome to Threshold Wallet")
+print("Checking for config file")
+
+config = path.isfile(".config.json")
+while not config:
+    print("No config file found")
+    print("Would you like to create one? Y/n")
+    response = input()
+    if response.lower() == "y":
+        config_file = open(".config.json", "w")
+        config_file.close()
+        config = True
+
+
 print("Would you like to run the wallet in interactive mode? Y/n")
 resp = input()
 
@@ -48,12 +63,29 @@ if resp.lower() == "y":
 while running:
     print("What would you like to do?")
     print("1 Generate Addresses")
-    print("2 quit")
+    print("2 Check balances")
+    print("3 quit")
     resp = int(input())
     if resp == 1:
+        print("Please enter a name for your wallet")
+        name = input()
         print("Generating addresses")
-        print(create_wallet())
+        wallet = create_wallet()
+        wallet["name"] = name
+        config_file = open(".config.json", "a")
+        config_file.write(json.dumps(wallet))
+        config_file.close()
     elif resp == 2:
+        config_file = open(".config.json", "r")
+        print("Wallets")
+        info = config_file
+        json = json.load(info)
+        config_file.close()
+        addresses = json["addresses"]
+        for key, address in addresses.items():
+            balance = requests.get("https://blockstream.info/api/address/" + address + "/txs").json()
+            print(key, ":", str(address), balance)
+    elif resp == 3:
         print("Terminating Program")
         running = False
     else:
