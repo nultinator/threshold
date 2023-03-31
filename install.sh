@@ -9,3 +9,5 @@ pip install mnemonic
 pip install ecdsa
 
 pip install hdwallet
+
+pip install blockstream
