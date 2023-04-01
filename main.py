@@ -8,6 +8,8 @@ from typing import Optional
 import json
 import requests
 from os import path
+from blockstream import blockexplorer
+import wallet_utils
 
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -24,18 +26,6 @@ LEGACY: int = 44
 SEGWIT_P2SH: int = 49
 
 SEGWIT_NATIVE: int = 84
-
-def create_wallet():
-    hdwallet.from_index(LEGACY, hardened=True)
-    hdwallet.from_index(0, hardened=True)
-    hdwallet.from_index(0, hardened=True)
-
-    hdwallet.from_index(0)
-    hdwallet.from_index(0)
-
-    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
-    loads = json.loads(dumps)
-    return loads
 
 running = False
 
@@ -70,21 +60,25 @@ while running:
         print("Please enter a name for your wallet")
         name = input()
         print("Generating addresses")
-        wallet = create_wallet()
+        wallet = wallet_utils.create_wallet()
         wallet["name"] = name
         config_file = open(".config.json", "a")
         config_file.write(json.dumps(wallet))
         config_file.close()
     elif resp == 2:
-        config_file = open(".config.json", "r")
         print("Wallets")
-        info = config_file
-        json = json.load(info)
-        config_file.close()
-        addresses = json["addresses"]
-        for key, address in addresses.items():
-            balance = requests.get("https://blockstream.info/api/address/" + address + "/txs").json()
-            print(key, ":", str(address), balance)
+        balances = wallet_utils.get_all_balances()
+        for k,v in balances.items():
+            print(k, v)
+        print("Would you like to see the UXTOs? Y/n")
+        resp = input()
+        if resp.lower() == "y":
+            print("Fetching UTXOs")
+            for k in balances:
+                UTXOs = blockexplorer.get_address_transactions(k)
+                for UTXO in UTXOs:
+                    Dict = UTXO.serialized()
+                    print(UTXO.id, UTXO.vout[0]["value"], "sats")
     elif resp == 3:
         print("Terminating Program")
         running = False
