@@ -54,7 +54,8 @@ while running:
     print("What would you like to do?")
     print("1 Generate Addresses")
     print("2 Check balances")
-    print("3 quit")
+    print("3 Restore a Wallet")
+    print("4 Quit")
     resp = int(input())
     if resp == 1:
         print("Please enter a name for your wallet")
@@ -80,6 +81,12 @@ while running:
                     Dict = UTXO.serialized()
                     print(UTXO.id, UTXO.vout[0]["value"], "sats")
     elif resp == 3:
+        wallet = open(".config.json", "r", encoding="UTF-8")
+        print("Fetching Wallet Info")
+        print("Please enter your private key or seed phrase:")
+        key = input()
+        wallet_utils.restore_wallet(key)
+    elif resp == 4:
         print("Terminating Program")
         running = False
     else:
