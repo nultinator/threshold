@@ -46,30 +46,17 @@ def restore_wallet(restore_keys: str):
     else:
         hdwallet = BIP44HDWallet(symbol=SYMBOL)
         hdwallet.from_mnemonic(mnemonic=restore_keys)
-    print("Currency", hdwallet.cryptocurrency())
-    print("Symbol", hdwallet.symbol())
-    print("Network", hdwallet.network())
-    print("Uncompressed: ", hdwallet.uncompressed())
-    print("Compressed: ", hdwallet.compressed())
-    print("Private key", hdwallet.private_key())
-    print("Public key", hdwallet.public_key())
-    print("WIF Private Key", hdwallet.wif())
-    print("Fingerprint", hdwallet.finger_print())
-    print("Hash", hdwallet.hash())
-    print("P2PKH", hdwallet.p2pkh_address())
-    print("P2SH", hdwallet.p2sh_address())
-    print("P2WPKH", hdwallet.p2wpkh_address())
-    print("P2WPKH IN P2SH", hdwallet.p2wpkh_in_p2sh_address())
-    print("P2WSH", hdwallet.p2wsh_address())
-    print("P2WSH IN P2SH", hdwallet.p2wsh_in_p2sh_address())
-def get_all_balances():
-    config_file = open(".config.json", "r", encoding="UTF-8")
-    jsoninfo = json.load(config_file)
-    config_file.close()
-    addresses = jsoninfo["addresses"]
+    return hdwallet.dumps()
+
+def get_all_balances(wallets: dict):
+    print("Fetching balances")
     address_balances = {}
-    for key, address in addresses.items():
-        info = blockexplorer.get_address(address)
-        balance = (info.chain_stats["funded_txo_sum"])/100_000_000
-        address_balances[address] = balance
+    addresses = []
+    for wallet in wallets.values():
+        for address in wallet["addresses"].values():
+            addresses.append(address)
+        for address in addresses:
+            info = blockexplorer.get_address(address)
+            balance = (info.chain_stats["funded_txo_sum"])/100_000_000
+            address_balances[address] = balance
     return address_balances

@@ -32,19 +32,40 @@ running = False
 print("Welcome to Threshold Wallet")
 print("Checking for config file")
 
+
+wallets = {}
+
+
 config = path.isfile(".config.json")
+if config:
+    wallet_file = open(".config.json", "r")
+    existing_wallets = json.load(wallet_file)
+    wallets.update(existing_wallets)
+
 while not config:
     print("No config file found")
     print("Would you like to create one? Y/n")
     response = input()
     if response.lower() == "y":
         config_file = open(".config.json", "w")
+        new_wallet = wallet_utils.create_wallet()
+        print("Please name your wallet")
+        name = input()
+        wallets[name] = new_wallet
+        config_file.write(json.dumps(wallets))
         config_file.close()
         config = True
 
 
 print("Would you like to run the wallet in interactive mode? Y/n")
 resp = input()
+
+
+
+
+
+
+print("Existing wallets\n", wallets)
 
 if resp.lower() == "y":
     running = True
@@ -58,19 +79,22 @@ while running:
     print("4 Quit")
     resp = int(input())
     if resp == 1:
-        print("Please enter a name for your wallet")
-        name = input()
         print("Generating addresses")
-        wallet = wallet_utils.create_wallet()
-        wallet["name"] = name
-        config_file = open(".config.json", "a")
-        config_file.write(json.dumps(wallet))
+        print("Please choose a name for your new wallet")
+        name = input()
+        new_wallet = wallet_utils.create_wallet()
+        wallets[name] = new_wallet
+        print(wallets)
+        config_file = open(".config.json", "w")
+        config_file.write(json.dumps(wallets))
         config_file.close()
     elif resp == 2:
         print("Wallets")
-        balances = wallet_utils.get_all_balances()
+        balances = wallet_utils.get_all_balances(wallets)
         for k,v in balances.items():
             print(k, v)
+        total_balances = sum(balances.values())
+        print("Total: ", total_balances)
         print("Would you like to see the UXTOs? Y/n")
         resp = input()
         if resp.lower() == "y":
@@ -85,7 +109,13 @@ while running:
         print("Fetching Wallet Info")
         print("Please enter your private key or seed phrase:")
         key = input()
-        wallet_utils.restore_wallet(key)
+        wallet = wallet_utils.restore_wallet(key)
+        print("Please give your wallet a name")
+        name = input()
+        wallets[name] = wallet
+        config_file = open(".config.json", "w")
+        config_file.write(json.dumps(wallets))
+        config_file.close()       
     elif resp == 4:
         print("Terminating Program")
         running = False
