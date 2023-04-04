@@ -11,3 +11,5 @@ pip install ecdsa
 pip install hdwallet
 
 pip install blockstream
+
+pip install bloxplorer

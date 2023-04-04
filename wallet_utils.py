@@ -1,6 +1,6 @@
 from hdwallet import HDWallet, BIP44HDWallet
 from hdwallet.utils import generate_entropy
-from hdwallet.symbols import BTC as SYMBOL
+from hdwallet.symbols import BTC, BTCTEST
 from typing import Optional
 import json
 import requests
@@ -10,7 +10,7 @@ from blockstream import blockexplorer
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
 
-hdwallet: HDWallet = HDWallet(symbol=SYMBOL, use_default_path=False)
+hdwallet: HDWallet = HDWallet(symbol=BTC, use_default_path=False)
 
 hdwallet.from_entropy(
     entropy=ENTROPY, language="english", passphrase=""
@@ -34,6 +34,7 @@ def create_wallet():
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
     return loads
+
 
 def restore_wallet(restore_keys: str):
     hdwallet: HDWallet = HDWallet(symbol=SYMBOL)

@@ -10,6 +10,7 @@ import requests
 from os import path
 from blockstream import blockexplorer
 import wallet_utils
+import testnet
 
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -75,8 +76,9 @@ while running:
     print("What would you like to do?")
     print("1 Generate Addresses")
     print("2 Check balances")
-    print("3 Restore a Wallet")
-    print("4 Quit")
+    print("3 Testnet Wallet")
+    print("4 Restore Wallet")
+    print("5 Quit")
     resp = int(input())
     if resp == 1:
         print("Generating addresses")
@@ -105,6 +107,12 @@ while running:
                     Dict = UTXO.serialized()
                     print(UTXO.id, UTXO.vout[0]["value"], "sats")
     elif resp == 3:
+        print("Generate a testnet wallet")
+        test_wallet = testnet.create_testnet_wallet()
+        print(test_wallet)
+    
+
+    elif resp == 4:
         wallet = open(".config.json", "r", encoding="UTF-8")
         print("Fetching Wallet Info")
         print("Please enter your private key or seed phrase:")
@@ -116,7 +124,7 @@ while running:
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()       
-    elif resp == 4:
+    elif resp == 5:
         print("Terminating Program")
         running = False
     else:

@@ -1,16 +1,20 @@
 from hdwallet import HDWallet
 from hdwallet.utils import generate_entropy
-from hdwallet.symbols import BTC as SYMBOL
+from hdwallet.symbols import BTC
 from typing import Optional
 import json
 import requests
 from blockstream import blockexplorer
+import wallet_utils
 
+
+
+########BTC MAINNET TESTS#############
 #256 represents a 24 word seed phrase, less strength means less words... pretty simple
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
 
-hdwallet: HDWallet = HDWallet(symbol=SYMBOL, use_default_path=False)
+hdwallet: HDWallet = HDWallet(symbol=BTC, use_default_path=False)
 
 hdwallet.from_entropy(
     entropy=ENTROPY, language="english", passphrase=""
@@ -101,6 +105,9 @@ for output in outputs:
     print(output.vout[0]["value"]/100_000_000, "BTC")
 assert type(outputs) == list
 print("UTXO Test: PASSED")
+
+
+
 
 
 print("ALL TESTS PASSED")
