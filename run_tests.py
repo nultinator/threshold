@@ -105,9 +105,3 @@ for output in outputs:
     print(output.vout[0]["value"]/100_000_000, "BTC")
 assert type(outputs) == list
 print("UTXO Test: PASSED")
-
-
-
-
-
-print("ALL TESTS PASSED")

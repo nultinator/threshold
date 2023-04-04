@@ -78,7 +78,8 @@ while running:
     print("2 Check balances")
     print("3 Testnet Wallet")
     print("4 Restore Wallet")
-    print("5 Quit")
+    print("5 Run Tests")
+    print("6 Quit")
     resp = int(input())
     if resp == 1:
         print("Generating addresses")
@@ -125,6 +126,8 @@ while running:
         config_file.write(json.dumps(wallets))
         config_file.close()       
     elif resp == 5:
+        testnet.runtests()
+    elif resp == 6:
         print("Terminating Program")
         running = False
     else:
