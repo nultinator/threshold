@@ -35,6 +35,30 @@ def create_wallet():
     loads = json.loads(dumps)
     return loads
 
+def generate_children(wallet: dict, amount: int, testnet: bool):
+    counter = 0
+    if testnet:
+        symbol = BTCTEST
+    else:
+        symbol = BTC
+    seed_phrase = wallet["mnemonic"]
+    pubkey = wallet["root_xpublic_key"]
+    print("Your seed phrase\n" + seed_phrase)
+    new_addresses = []
+    for new_wallet in range(1, amount+1):
+        hdwallet: HDWallet = BIP44HDWallet(symbol=symbol)
+        hdwallet.from_xpublic_key(xpublic_key=pubkey)
+        hdwallet.from_index(LEGACY)
+        hdwallet.from_index(0)
+        hdwallet.from_index(0)
+        hdwallet.from_index(0)
+        hdwallet.from_index(counter)
+        dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+        loads = json.loads(dumps)
+        new_addresses.append(loads["addresses"])
+        counter += 1
+    return new_addresses
+
 
 def restore_wallet(restore_keys: str):
     hdwallet: HDWallet = HDWallet(symbol=SYMBOL)
