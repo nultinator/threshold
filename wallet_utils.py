@@ -5,7 +5,7 @@ from typing import Optional
 import json
 import requests
 from os import path
-from blockstream import blockexplorer
+from bloxplorer import bitcoin_explorer, bitcoin_testnet_explorer
 
 #Generate 24 word seed phrases by default
 STRENGTH: int = 256
@@ -77,16 +77,30 @@ def restore_wallet(restore_keys: str):
         hdwallet = BIP44HDWallet(symbol=SYMBOL)
         hdwallet.from_mnemonic(mnemonic=restore_keys)
     return hdwallet.dumps()
-#Retrieve all balances....DOES NOT SUPPORT CHILD WALLETS YET
-def get_all_balances(wallets: dict):
-    print("Fetching balances")
-    address_balances = {}
+#Retrieve a balance...Children supported, testnet not supported yet
+def getbalance(address: str):
+    if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
+        return bitcoin_explorer.addr.get(address).data["chain_stats"]["funded_txo_sum"]/100_000_000
+
+def gettotalbalance(wallets: dict):
+    sum = 0
+    #create an addresses list
     addresses = []
     for wallet in wallets.values():
+        #add addresses from the parent wallet to the addresses list
         for address in wallet["addresses"].values():
             addresses.append(address)
+            #check for child wallets
+        if "children" in wallet.keys():
+            #add child wallets to the addresses list
+            for child_wallet in wallet["children"]:
+                for address in child_wallet.values():
+                    addresses.append(address)
+        else:
+            continue
+            #print each address and its balance
         for address in addresses:
-            info = blockexplorer.get_address(address)
-            balance = (info.chain_stats["funded_txo_sum"])/100_000_000
-            address_balances[address] = balance
-    return address_balances
+            balance = getbalance(address)
+            sum += balance
+    #return the total balance
+    return sum
