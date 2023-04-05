@@ -142,10 +142,13 @@ while running:
             testnet: bool = False
         for wallet in wallets.values():
             wallet["children"] = wallet_utils.generate_children(wallet, amount, testnet)
-        print(wallets)
-        #config_file = open(".config.json", "w")
-        #config_file.write(json.dumps(wallets))
-        #config_file.close()
+        print("Your new child wallets:")
+        #Display the new wallets to the user and save them to the wallet file
+        for wallet in wallets.values():            
+            print(wallet["children"])
+        config_file = open(".config.json", "w")
+        config_file.write(json.dumps(wallets))
+        config_file.close()
 
     #Run the tests
     elif resp == 6:
