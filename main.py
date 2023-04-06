@@ -11,6 +11,7 @@ from os import path
 from blockstream import blockexplorer
 import wallet_utils
 import testnet
+import tx_builder
 
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -111,19 +112,41 @@ while running:
             #print each address and its balance
             for address in addresses:
                 balance = wallet_utils.getbalance(address)
-                if wallet_utils.is_testnet(address):                    
-                    testnet_sum += float(balance)
-                    print(address, balance, "tBTC")
-                    print("UTXOs")
-                    print(wallet_utils.listunspent(address))
+                if balance >= 0:
+                    if wallet_utils.is_testnet(address):                    
+                        testnet_sum += float(balance)
+                        utxos = wallet_utils.listunspent(address)
+                        if len(utxos) > 0:
+                            print(address, balance, "tBTC")
+                    else:
+                        mainnet_sum += float(balance)
+                        utxos = wallet_utils.listunspent(address)
+                        if len(utxos) > 0:
+                            print(address, balance, "BTC")
                 else:
-                    mainnet_sum += float(balance)
-                    print(address, balance, "BTC")
-                    print("UTXOs")
-                    print(wallet_utils.listunspent(address))
+                    continue
+            tx_builder.get_all_outputs(wallet)
         #print the total balance
         print("Total balance", testnet_sum, "tBTC")
         print("Total balance", mainnet_sum, "BTC")
+        for wallet in wallets.values():
+            """
+            outputs = tx_builder.get_all_outputs(wallet)
+            if len(outputs["mainnet"]) > 0:
+                print("Spendable Mainnet Coins")
+                print(outputs["mainnet"])
+            if len(outputs["testnet"]) > 0:
+                for tx in outputs["testnet"]:
+                    for note in tx:
+                        for key, value in note.items():
+                            if key == "txid":
+                                print(key, value)
+                            if key == "vout":
+                                print(key, value)
+                            if key == "value":
+                                print(key, value)
+            """
+            tx_builder.createrawtransaction(wallet)
     #Create a testnet wallet
     elif resp == 3:
         print("Generate a testnet wallet")
