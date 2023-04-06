@@ -81,6 +81,10 @@ def restore_wallet(restore_keys: str):
 def getbalance(address: str):
     if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
         return bitcoin_explorer.addr.get(address).data["chain_stats"]["funded_txo_sum"]/100_000_000
+    elif address[0:3] == "tb1" or address[0] =="m" or address[0] == "n" or address[0] == "2":
+        return bitcoin_testnet_explorer.addr.get(address).data["chain_stats"]["funded_txo_sum"]/100_000_000
+    else:
+        return "address {} not a valid BTC or BTCTEST address".format(address)
 
 def gettotalbalance(wallets: dict):
     sum = 0
@@ -104,3 +108,19 @@ def gettotalbalance(wallets: dict):
             sum += balance
     #return the total balance
     return sum
+
+def is_testnet(address: str):
+    if address[0:3] == "tb1" or address[0] == "m" or address[0] == "n" or address[0] == "2":
+        return True
+
+def is_mainnet(address: str):
+    if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
+        return True
+
+def listunspent(address: str):
+    if is_testnet(address):
+        return bitcoin_testnet_explorer.addr.get_utxo(address).data
+    elif is_mainnet(address):
+        return bitcoin_explorer.addr.get_utxo(address).data
+    else:
+        return "Address {} not valid".format(address)

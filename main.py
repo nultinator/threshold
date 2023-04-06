@@ -91,7 +91,8 @@ while running:
     #Fetch balances/UTXOS through API
     elif resp == 2:
         print("Wallets")
-        sum = 0
+        mainnet_sum = 0
+        testnet_sum = 0
         #create an addresses list
         addresses = []
         for wallet in wallets.values():
@@ -110,16 +111,35 @@ while running:
             #print each address and its balance
             for address in addresses:
                 balance = wallet_utils.getbalance(address)
-                sum += balance
-                print(address, balance, "BTC")
+                if wallet_utils.is_testnet(address):                    
+                    testnet_sum += float(balance)
+                    print(address, balance, "tBTC")
+                    print("UTXOs")
+                    print(wallet_utils.listunspent(address))
+                else:
+                    mainnet_sum += float(balance)
+                    print(address, balance, "BTC")
+                    print("UTXOs")
+                    print(wallet_utils.listunspent(address))
         #print the total balance
-        print("Total balance", sum, "BTC")
+        print("Total balance", testnet_sum, "tBTC")
+        print("Total balance", mainnet_sum, "BTC")
     #Create a testnet wallet
     elif resp == 3:
         print("Generate a testnet wallet")
+        print("Please enter a name for your wallet")
+        name = input()
+        walletname = "{}_TESTNET".format(name)
+        print(walletname)
         test_wallet = testnet.create_testnet_wallet()
         #Currently, testnet addresses are not saved to the wallet file
-        print(test_wallet)
+        wallets[walletname] = test_wallet
+        config_file = open(".config.json", "w")
+        config_file.write(json.dumps(wallets))
+        config_file.close()
+        print("You can fund your new testnet wallet at one of the addresses below")
+        print("https://bitcoinfaucet.uo1.net/send.php")
+        print("https://testnet-faucet.com/btc-testnet/")
     #Restore a wallet from seed phrase
     elif resp == 4:
         print("Fetching Wallet Info")
