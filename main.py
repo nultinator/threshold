@@ -75,8 +75,9 @@ while running:
     print("3 Testnet Wallet")
     print("4 Restore Wallet")
     print("5 Generate child wallets")
-    print("6 Run Tests")
-    print("7 Quit")
+    print("6 Send a transaction (NOT WORKING)")
+    print("7 Run Tests")
+    print("8 Quit")
     resp = int(input())
     #Generate a wallet
     if resp == 1:
@@ -96,7 +97,8 @@ while running:
         testnet_sum = 0
         #create an addresses list
         addresses = []
-        for wallet in wallets.values():
+        for walletname, wallet in wallets.items():
+            print(walletname)
             #add addresses from the parent wallet to the addresses list
             for address in wallet["addresses"].values():
                 addresses.append(address)
@@ -129,24 +131,6 @@ while running:
         #print the total balance
         print("Total balance", testnet_sum, "tBTC")
         print("Total balance", mainnet_sum, "BTC")
-        for wallet in wallets.values():
-            """
-            outputs = tx_builder.get_all_outputs(wallet)
-            if len(outputs["mainnet"]) > 0:
-                print("Spendable Mainnet Coins")
-                print(outputs["mainnet"])
-            if len(outputs["testnet"]) > 0:
-                for tx in outputs["testnet"]:
-                    for note in tx:
-                        for key, value in note.items():
-                            if key == "txid":
-                                print(key, value)
-                            if key == "vout":
-                                print(key, value)
-                            if key == "value":
-                                print(key, value)
-            """
-            tx_builder.createrawtransaction(wallet)
     #Create a testnet wallet
     elif resp == 3:
         print("Generate a testnet wallet")
@@ -199,11 +183,24 @@ while running:
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
-    #Run the tests
+    #create a transaction
     elif resp == 6:
+        print("Send a transaction")
+        print("Please select a wallet")
+        selector = 0
+        for walletname, walletinfo in wallets.items():
+            network = walletinfo["network"]
+            print(selector, walletname, network)
+            selector += 1
+        print("Please enter the name of the wallet you wish to use")
+        resp = input()
+        choice = wallets[resp]
+        tx_builder.createrawtransaction(choice)
+    #Run the tests
+    elif resp == 7:
         testnet.runtests()
     #Terminate the program
-    elif resp == 7:
+    elif resp == 8:
         print("Terminating Program")
         running = False
     else:

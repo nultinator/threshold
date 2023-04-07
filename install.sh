@@ -13,3 +13,5 @@ pip install hdwallet
 pip install blockstream
 
 pip install bloxplorer
+
+pip install bitcoin-utils
