@@ -9,9 +9,13 @@ import json
 import requests
 from os import path
 from blockstream import blockexplorer
+import qrcode
+import io
+
 import wallet_utils
 import testnet
 import tx_builder
+
 
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -30,6 +34,7 @@ SEGWIT_P2SH: int = 49
 SEGWIT_NATIVE: int = 84
 
 running = False
+
 
 print("Welcome to Threshold Wallet")
 print("Checking for config file")
@@ -65,8 +70,10 @@ if resp.lower() == "y":
     running = True
 #Retrieve the total balance
 print("Fetching balance")
-total_balance = wallet_utils.gettotalbalance(wallets)
-print("Total Balance", total_balance)
+for key, value in wallets.items():
+    print(key)
+    total_balance = wallet_utils.getwalletbalance(value)
+    print("Total Balance", total_balance, value["symbol"])
 #Runtime loop...Let the user choose what to do, and then restart the loop
 while running:
     print("What would you like to do?")
@@ -74,7 +81,7 @@ while running:
     print("2 Check Address balances")
     print("3 Testnet Wallet")
     print("4 Restore Wallet")
-    print("5 Generate child wallets")
+    print("5 Generate Receiving Address")
     print("6 Send a transaction (NOT WORKING)")
     print("7 Run Tests")
     print("8 Quit")
@@ -93,44 +100,10 @@ while running:
     #Fetch balances/UTXOS through API
     elif resp == 2:
         print("Wallets")
-        mainnet_sum = 0
-        testnet_sum = 0
-        #create an addresses list
-        addresses = []
-        for walletname, wallet in wallets.items():
-            print(walletname)
-            #add addresses from the parent wallet to the addresses list
-            for address in wallet["addresses"].values():
-                addresses.append(address)
-            #check for child wallets
-            if "children" in wallet.keys():
-                print("child wallets detected")
-                #add child wallets to the addresses list
-                for child_wallet in wallet["children"]:
-                    for address in child_wallet.values():
-                        addresses.append(address)
-            else:
-                print("No child wallets detected")
-            #print each address and its balance
-            for address in addresses:
-                balance = wallet_utils.getbalance(address)
-                if balance >= 0:
-                    if wallet_utils.is_testnet(address):                    
-                        testnet_sum += float(balance)
-                        utxos = wallet_utils.listunspent(address)
-                        if len(utxos) > 0:
-                            print(address, balance, "tBTC")
-                    else:
-                        mainnet_sum += float(balance)
-                        utxos = wallet_utils.listunspent(address)
-                        if len(utxos) > 0:
-                            print(address, balance, "BTC")
-                else:
-                    continue
-            tx_builder.get_all_outputs(wallet)
-        #print the total balance
-        print("Total balance", testnet_sum, "tBTC")
-        print("Total balance", mainnet_sum, "BTC")
+        for key, value in wallets.items():
+            print(key)
+            total_balance = wallet_utils.getwalletbalance(value)
+            print("Total Balance", total_balance, value["symbol"])
     #Create a testnet wallet
     elif resp == 3:
         print("Generate a testnet wallet")
@@ -139,6 +112,7 @@ while running:
         walletname = "{}_TESTNET".format(name)
         print(walletname)
         test_wallet = testnet.create_testnet_wallet()
+        test_wallet["children"] = []
         #Currently, testnet addresses are not saved to the wallet file
         wallets[walletname] = test_wallet
         config_file = open(".config.json", "w")
@@ -162,27 +136,34 @@ while running:
         config_file.close()
     #Generate Child Wallets
     elif resp == 5:
-        print("How many children?")
-        amount = int(input())
-        print("Please select a network")
-        print("1 Mainnet")
-        print("2 Testnet")
-        network = int(input())
-        #check if we are on testnet
-        if network == 2:
-            testnet: bool = True
-        else:
-            testnet: bool = False
-        #generate the user's chosen amount of children
-        for wallet in wallets.values():
-            wallet["children"] = wallet_utils.generate_children(wallet, amount, testnet)
-        print("Your new child wallets:")
-        #Display the new wallets to the user and save them to the wallet file
-        for wallet in wallets.values():            
-            print(wallet["children"])
+        print("Generate Reciving Address")
+        print("Please choose one of the wallets below")
+        for wallet in wallets.keys():
+            print("Wallet name:", wallet)
+        resp = input()
+        while resp not in wallets.keys():
+            print("The wallet you chose does not exist. Please eneter a valid wallet name")
+            for wallet in wallets.keys():
+                print("Wallet name:", wallet)
+            resp = input()
+        print("You selected:", resp)
+        wallet = wallets[resp]
+        address = wallet_utils.getnewaddress(wallet)
+        wallet["children"].append(address)
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
+        print(address)
+        print("Display as QR? Y/n")
+        resp = input()
+        if resp.lower() == "y":
+            print("Creating QR Code")
+            qr = qrcode.QRCode()
+            qr.add_data(address)
+            f = io.StringIO()
+            qr.print_ascii(out=f)
+            f.seek(0)
+            print(f.read())
     #create a transaction
     elif resp == 6:
         print("Send a transaction")

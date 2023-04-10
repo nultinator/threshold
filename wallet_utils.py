@@ -35,32 +35,30 @@ def create_wallet():
 
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
+    loads["children"] = []
     return loads
 
 #Generates child wallets based on the root xpublic key
-def generate_children(wallet: dict, amount: int, testnet: bool):
-    counter = 0
-    if testnet:
-        symbol = BTCTEST
-    else:
-        symbol = BTC
+def getnewaddress(wallet: dict):
+    symbol = wallet["symbol"]
     seed_phrase = wallet["mnemonic"]
     pubkey = wallet["root_xpublic_key"]
-    print("Your seed phrase\n" + seed_phrase)
-    new_addresses = []
-    for new_wallet in range(1, amount+1):
-        hdwallet: HDWallet = BIP44HDWallet(symbol=symbol)
-        hdwallet.from_xpublic_key(xpublic_key=pubkey)
-        hdwallet.from_index(LEGACY)
-        hdwallet.from_index(0)
-        hdwallet.from_index(0)
-        hdwallet.from_index(0)
-        hdwallet.from_index(counter)
-        dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
-        loads = json.loads(dumps)
-        new_addresses.append(loads["addresses"])
-        counter += 1
-    return new_addresses
+    index = len(wallet["children"])
+    print("Current children:", index)
+    hdwallet: HDWallet = BIP44HDWallet(symbol=symbol)
+    hdwallet.from_xpublic_key(xpublic_key=pubkey)
+    hdwallet.from_index(LEGACY)
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+    hdwallet.from_index(index+1)
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    address = loads["addresses"]["p2pkh"]
+    if address not in wallet["children"]:
+        return address
+    else:
+        return "Address already in wallet... We may have a bug"
 
 #Restore a wallet
 def restore_wallet(restore_keys: str):
@@ -86,26 +84,19 @@ def getbalance(address: str):
     else:
         return "address {} not a valid BTC or BTCTEST address".format(address)
 
-def gettotalbalance(wallets: dict):
-    sum = 0
+def getwalletbalance(wallet: dict):
+    sum: float = 0
     #create an addresses list
     addresses = []
-    for wallet in wallets.values():
-        #add addresses from the parent wallet to the addresses list
-        for address in wallet["addresses"].values():
-            addresses.append(address)
-            #check for child wallets
-        if "children" in wallet.keys():
-            #add child wallets to the addresses list
-            for child_wallet in wallet["children"]:
-                for address in child_wallet.values():
-                    addresses.append(address)
-        else:
-            continue
-            #print each address and its balance
-        for address in addresses:
-            balance = getbalance(address)
-            sum += balance
+    #add addresses from the parent wallet to the addresses list
+    for address in wallet["addresses"].values():
+        addresses.append(address)
+    #add child wallets to the addresses list
+    for receiving_address in wallet["children"]:
+        addresses.append(receiving_address)
+        amount: float = getbalance(address)
+        print(receiving_address, amount, wallet["symbol"])
+        sum += amount
     #return the total balance
     return sum
 
