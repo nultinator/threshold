@@ -88,12 +88,11 @@ def gethardaddress(wallet: dict):
     hdwallet.from_index(index+1)
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
-    print(loads)
-    address = loads["addresses"]["p2pkh"]
-    if address not in wallet["children"]:
-        return address
+    if loads not in wallet["children"]:
+        return loads
     else:
-        return "Address already in wallet... We may have a bug"
+        print("Address already in wallet... We may have a bug")
+        return None
 
 #####                                #####
 
@@ -123,17 +122,16 @@ def getbalance(address: str):
 
 def getwalletbalance(wallet: dict):
     sum: float = 0
-    #create an addresses list
-    addresses = []
-    #add addresses from the parent wallet to the addresses list
+    #get balances on the parent wallet
     for address in wallet["addresses"].values():
-        addresses.append(address)
-    #add child wallets to the addresses list
-    for receiving_address in wallet["children"]:
-        addresses.append(receiving_address)
         amount: float = getbalance(address)
-        print(receiving_address, amount, wallet["symbol"])
-        sum += amount
+        print(address, amount, wallet["symbol"])
+    #get balances on the child wallets
+    for childwallet in wallet["children"]:
+        for receiving_address in childwallet["addresses"].values():
+            amount: float = getbalance(address)
+            print(receiving_address, amount, wallet["symbol"])
+            sum += amount
     #return the total balance
     return sum
 
@@ -152,3 +150,16 @@ def listunspent(address: str):
         return bitcoin_explorer.addr.get_utxo(address).data
     else:
         return "Address {} not valid".format(address)
+
+def create_testnet_wallet(seed_phrase: str):
+    hdwallet: HDWallet = HDWallet(symbol=BTCTEST)
+    hdwallet.from_mnemonic(seed_phrase)
+    hdwallet.from_index(44, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    return loads

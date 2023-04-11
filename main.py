@@ -112,7 +112,9 @@ while running:
         name = input()
         walletname = "{}_TESTNET".format(name)
         print(walletname)
-        test_wallet = testnet.create_testnet_wallet()
+        print("Please input a seed phrase")
+        seed_phrase = input()
+        test_wallet = wallet_utils.create_testnet_wallet(seed_phrase)
         test_wallet["children"] = []
         #Currently, testnet addresses are not saved to the wallet file
         wallets[walletname] = test_wallet
