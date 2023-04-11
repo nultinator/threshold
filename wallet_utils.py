@@ -163,3 +163,21 @@ def create_testnet_wallet(seed_phrase: str):
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
     return loads
+
+#Create a testnet wallet from entropy
+def create_testnet_wallet():
+    STRENGTH: int = 256
+    ENTROPY: str = generate_entropy(strength=STRENGTH)
+    hdwallet: HDWallet = HDWallet(symbol="BTCTEST", use_default_path=False)
+    hdwallet.from_entropy(entropy=ENTROPY, language="english", passphrase="")
+    LEGACY: int = 44
+    SEGWIT_P2SH: int = 49
+    SEGWIT_NATIVE: int = 84
+    hdwallet.from_index(LEGACY, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    return loads

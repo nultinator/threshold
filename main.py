@@ -112,10 +112,16 @@ while running:
         name = input()
         walletname = "{}_TESTNET".format(name)
         print(walletname)
-        print("Please input a seed phrase")
-        seed_phrase = input()
-        test_wallet = wallet_utils.create_testnet_wallet(seed_phrase)
-        test_wallet["children"] = []
+        print("Create from seed phrase? Y/n")
+        resp = input()
+        if resp.lower() == "y":
+            print("Please input a seed phrase")
+            seed_phrase = input()
+            test_wallet = wallet_utils.create_testnet_wallet(seed_phrase)
+            test_wallet["children"] = []
+        else:
+            test_wallet = wallet_utils.create_testnet_wallet()
+            test_wallet["children"] = []
         #Currently, testnet addresses are not saved to the wallet file
         wallets[walletname] = test_wallet
         config_file = open(".config.json", "w")
@@ -151,22 +157,23 @@ while running:
             resp = input()
         print("You selected:", resp)
         wallet = wallets[resp]
-        address = wallet_utils.gethardaddress(wallet)
-        wallet["children"].append(address)
+        child = wallet_utils.gethardaddress(wallet)
+        wallet["children"].append(child)
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
-        print(address)
-        print("Display as QR? Y/n")
-        resp = input()
-        if resp.lower() == "y":
-            print("Creating QR Code")
-            qr = qrcode.QRCode()
-            qr.add_data(address)
-            f = io.StringIO()
-            qr.print_ascii(out=f)
-            f.seek(0)
-            print(f.read())
+        for address in child["addresses"].values():
+            print(address)
+            print("Display as QR? Y/n")
+            resp = input()
+            if resp.lower() == "y":
+                print("Creating QR Code")
+                qr = qrcode.QRCode()
+                qr.add_data(address)
+                f = io.StringIO()
+                qr.print_ascii(out=f)
+                f.seek(0)
+                print(f.read())
     #create a transaction
     elif resp == 6:
         print("Send a transaction")
