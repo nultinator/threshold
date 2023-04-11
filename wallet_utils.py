@@ -11,13 +11,6 @@ from bloxplorer import bitcoin_explorer, bitcoin_testnet_explorer
 STRENGTH: int = 256
 ENTROPY: str = generate_entropy(strength=STRENGTH)
 
-hdwallet: HDWallet = HDWallet(symbol=BTC, use_default_path=False)
-
-hdwallet.from_entropy(
-    entropy=ENTROPY, language="english", passphrase=""
-)
-
-
 LEGACY: int = 44
 
 SEGWIT_P2SH: int = 49
@@ -26,6 +19,9 @@ SEGWIT_NATIVE: int = 84
 
 #Create a new wallet from entropy
 def create_wallet():
+    hdwallet = HDWallet(symbol=BTC, use_default_path=False)
+    hdwallet.from_entropy(entropy=ENTROPY, language="english", passphrase="")
+
     hdwallet.from_index(LEGACY, hardened=True)
     hdwallet.from_index(0, hardened=True)
     hdwallet.from_index(0, hardened=True)
@@ -38,7 +34,21 @@ def create_wallet():
     loads["children"] = []
     return loads
 
-#Generates child wallets based on the root xpublic key
+def create_wallet_set():
+    hdwallet.from_index(LEGACY, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    loads["children"] = []
+    return loads
+
+
+#Generates NON-HARDENED child wallets based on the root xpublic key
 def getnewaddress(wallet: dict):
     symbol = wallet["symbol"]
     seed_phrase = wallet["mnemonic"]
@@ -50,8 +60,8 @@ def getnewaddress(wallet: dict):
     hdwallet.from_index(LEGACY)
     hdwallet.from_index(0)
     hdwallet.from_index(0)
-    hdwallet.from_index(0)
     hdwallet.from_index(index+1)
+    hdwallet.from_index(0)
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
     address = loads["addresses"]["p2pkh"]
@@ -59,10 +69,37 @@ def getnewaddress(wallet: dict):
         return address
     else:
         return "Address already in wallet... We may have a bug"
+#####ADD getnewaddress HARDENED HERE #####
+#Generate first 20 addresses and check each for a balance
+        ###IF balance on ALL OF THEM is 0, the wallet can be considered unused
+def gethardaddress(wallet: dict):
+    symbol = wallet["symbol"]
+    seed_phrase = wallet["mnemonic"]
+    privkey = wallet["root_xprivate_key"]
+    index = len(wallet["children"])
+    print("Current children:", index)
+    hdwallet: HDWallet = HDWallet(symbol=symbol)
+    hdwallet.from_mnemonic(seed_phrase)
+    hdwallet.from_index(44, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+
+    hdwallet.from_index(0)
+    hdwallet.from_index(index+1)
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    print(loads)
+    address = loads["addresses"]["p2pkh"]
+    if address not in wallet["children"]:
+        return address
+    else:
+        return "Address already in wallet... We may have a bug"
+
+#####                                #####
 
 #Restore a wallet
-def restore_wallet(restore_keys: str):
-    hdwallet: HDWallet = HDWallet(symbol=SYMBOL)
+def restore_wallet(restore_keys: str, symbol: str):
+    hdwallet: HDWallet = HDWallet(symbol=symbol)
     length = len(restore_keys)
     #Restore from a private key
     if length == 64:
@@ -72,7 +109,7 @@ def restore_wallet(restore_keys: str):
         hdwallet.from_wif(wif=restore_keys)
     #Restore from a seed phrase
     else:
-        hdwallet = BIP44HDWallet(symbol=SYMBOL)
+        hdwallet = BIP44HDWallet(symbol=symbol)
         hdwallet.from_mnemonic(mnemonic=restore_keys)
     return hdwallet.dumps()
 #Retrieve a balance...Children supported, testnet not supported yet

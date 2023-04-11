@@ -149,7 +149,7 @@ while running:
             resp = input()
         print("You selected:", resp)
         wallet = wallets[resp]
-        address = wallet_utils.getnewaddress(wallet)
+        address = wallet_utils.gethardaddress(wallet)
         wallet["children"].append(address)
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
