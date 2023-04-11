@@ -83,8 +83,9 @@ while running:
     print("4 Restore Wallet")
     print("5 Generate Receiving Address")
     print("6 Send a transaction (NOT WORKING)")
-    print("7 Run Tests")
-    print("8 Quit")
+    print("7 Export Wallet")
+    print("8 Run Tests")
+    print("9 Quit")
     resp = int(input())
     #Generate a wallet
     if resp == 1:
@@ -177,11 +178,40 @@ while running:
         resp = input()
         choice = wallets[resp]
         tx_builder.createrawtransaction(choice)
-    #Run the tests
+    #Export Wallet
     elif resp == 7:
+        print("Exporting Wallet")
+        print("Please select a wallet")
+        for wallet in wallets:
+            print(wallet)
+        resp = input()
+        while resp not in wallets:
+            print("Please choose a valid wallet")
+            for wallet in wallets:
+                print(wallet)
+            resp = input()
+        wallet = wallets[resp]
+        print("Seed Phrase:")
+        print(wallet["mnemonic"])
+        seed_qr = qrcode.QRCode()
+        seed_qr.add_data(wallet["mnemonic"])
+        f = io.StringIO()
+        seed_qr.print_ascii(out=f)
+        f.seek(0)
+        print(f.read())
+        print("WIF Private Key:")
+        print(wallet["wif"])
+        wif_qr = qrcode.QRCode()
+        wif_qr.add_data(wallet["wif"])
+        f = io.StringIO()
+        wif_qr.print_ascii(out=f)
+        f.seek(0)
+        print(f.read())
+    #Run the tests
+    elif resp == 8:
         testnet.runtests()
     #Terminate the program
-    elif resp == 8:
+    elif resp == 9:
         print("Terminating Program")
         running = False
     else:
