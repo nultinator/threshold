@@ -117,12 +117,12 @@ while running:
         if resp.lower() == "y":
             print("Please input a seed phrase")
             seed_phrase = input()
-            test_wallet = wallet_utils.create_testnet_wallet(seed_phrase)
+            test_wallet = wallet_utils.seed_testnet_wallet(seed_phrase)
             test_wallet["children"] = []
         else:
             test_wallet = wallet_utils.create_testnet_wallet()
             test_wallet["children"] = []
-        #Currently, testnet addresses are not saved to the wallet file
+        #Save wallet to the wallet file
         wallets[walletname] = test_wallet
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))

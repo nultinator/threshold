@@ -22,7 +22,7 @@ def create_wallet():
     hdwallet = HDWallet(symbol=BTC, use_default_path=False)
     hdwallet.from_entropy(entropy=ENTROPY, language="english", passphrase="")
 
-    hdwallet.from_index(LEGACY, hardened=True)
+    hdwallet.from_index(SEGWIT_NATIVE, hardened=True)
     hdwallet.from_index(0, hardened=True)
     hdwallet.from_index(0, hardened=True)
 
@@ -73,26 +73,60 @@ def getnewaddress(wallet: dict):
 #Generate first 20 addresses and check each for a balance
         ###IF balance on ALL OF THEM is 0, the wallet can be considered unused
 def gethardaddress(wallet: dict):
-    symbol = wallet["symbol"]
-    seed_phrase = wallet["mnemonic"]
-    privkey = wallet["root_xprivate_key"]
-    index = len(wallet["children"])
-    print("Current children:", index)
-    hdwallet: HDWallet = HDWallet(symbol=symbol)
-    hdwallet.from_mnemonic(seed_phrase)
-    hdwallet.from_index(44, hardened=True)
-    hdwallet.from_index(0, hardened=True)
-    hdwallet.from_index(0, hardened=True)
+    if wallet["network"] == "testnet":
+        if wallet["path"] == "m/44'/1'/0'/0/0":
+            derivation = LEGACY
+        elif wallet["path"] == "m/49'/1'/0'/0/0":
+            derivation = SEGWIT_P2SH
+        else:
+            derivation = SEGWIT_NATIVE
+        symbol = wallet["symbol"]
+        seed_phrase = wallet["mnemonic"]
+        privkey = wallet["root_xprivate_key"]
+        index = len(wallet["children"])
+        print("Current children:", index)
+        hdwallet: HDWallet = HDWallet(symbol=symbol)
+        hdwallet.from_mnemonic(seed_phrase)
+        hdwallet.from_index(derivation, hardened=True)
+        hdwallet.from_index(1, hardened=True)
+        hdwallet.from_index(0, hardened=True)
 
-    hdwallet.from_index(0)
-    hdwallet.from_index(index+1)
-    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
-    loads = json.loads(dumps)
-    if loads not in wallet["children"]:
-        return loads
+        hdwallet.from_index(0)
+        hdwallet.from_index(index+1)
+        dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+        loads = json.loads(dumps)
+        if loads in wallet["children"]:
+            print("Wallet already found")
+            return None
+        else:
+            return loads
     else:
-        print("Address already in wallet... We may have a bug")
-        return None
+        if wallet["path"] == "m/44'/0'/0'/0/0":
+            derivation  = LEGACY
+        elif wallet["path"] == "m/49'/0'/0'/0/0":
+            derivation = SEGWIT_P2SH
+        else:
+            derivation = SEGWIT_NATIVE
+        symbol = wallet["symbol"]
+        seed_phrase = wallet["mnemonic"]
+        privkey = wallet["root_xprivate_key"]
+        index = len(wallet["children"])
+        print("Current children:", index)
+        hdwallet: HDWallet = HDWallet(symbol=symbol)
+        hdwallet.from_mnemonic(seed_phrase)
+        hdwallet.from_index(derivation, hardened=True)
+        hdwallet.from_index(0, hardened=True)
+        hdwallet.from_index(0, hardened=True)
+
+        hdwallet.from_index(0)
+        hdwallet.from_index(index+1)
+        dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+        loads = json.loads(dumps)
+        if loads in wallet["children"]:
+            print("Wallet already found")
+            return None
+        else:
+            return loads
 
 #####                                #####
 
@@ -151,11 +185,26 @@ def listunspent(address: str):
     else:
         return "Address {} not valid".format(address)
 
-def create_testnet_wallet(seed_phrase: str):
+#cerate testnet wallet from seed
+def seed_testnet_wallet(seed_phrase: str):
+    print("Native Segwit? Y/n")
+    resp: str = input()
+    if resp.lower() == "n":
+        print("Please type 'legacy', or 'segwit-p2sh'")
+        resp: str = input()
+        if resp.lower() == "legacy":
+            derivation = LEGACY
+        elif resp.lower() == "segwit-p2sh":
+            derivation = SEGWIT_P2SH
+        else:
+            derivation = SEGWIT_NATIVE
+    else:
+        derivation = SEGWIT_NATIVE
+
     hdwallet: HDWallet = HDWallet(symbol=BTCTEST)
     hdwallet.from_mnemonic(seed_phrase)
-    hdwallet.from_index(44, hardened=True)
-    hdwallet.from_index(0, hardened=True)
+    hdwallet.from_index(derivation, hardened=True)
+    hdwallet.from_index(1, hardened=True)
     hdwallet.from_index(0, hardened=True)
 
     hdwallet.from_index(0)
@@ -163,8 +212,7 @@ def create_testnet_wallet(seed_phrase: str):
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
     return loads
-
-#Create a testnet wallet from entropy
+#Create a testnet wallet from entropy "m/44'/1'/0'/0/0"
 def create_testnet_wallet():
     STRENGTH: int = 256
     ENTROPY: str = generate_entropy(strength=STRENGTH)
@@ -173,9 +221,11 @@ def create_testnet_wallet():
     LEGACY: int = 44
     SEGWIT_P2SH: int = 49
     SEGWIT_NATIVE: int = 84
-    hdwallet.from_index(LEGACY, hardened=True)
+    #the first three indexes of derivation are hardened
+    hdwallet.from_index(SEGWIT_NATIVE, hardened=True)
+    hdwallet.from_index(1, hardened=True)
     hdwallet.from_index(0, hardened=True)
-    hdwallet.from_index(0, hardened=True)
+    #the last two are not hardened
     hdwallet.from_index(0)
     hdwallet.from_index(0)
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
