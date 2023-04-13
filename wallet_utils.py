@@ -31,21 +31,17 @@ def create_wallet():
 
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
-    loads["children"] = []
+    loads["receiving"] = []
+    loads["change"] = []
     return loads
 
-def create_wallet_set():
-    hdwallet.from_index(LEGACY, hardened=True)
-    hdwallet.from_index(0, hardened=True)
-    hdwallet.from_index(0, hardened=True)
+#########CREATE WALLET SET###########
 
-    hdwallet.from_index(0)
-    hdwallet.from_index(0)
+#Build a full electrum wallet consisting of receiving and change addresses
 
-    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
-    loads = json.loads(dumps)
-    loads["children"] = []
-    return loads
+
+
+#####################################
 
 
 #Generates NON-HARDENED child wallets based on the root xpublic key
@@ -83,7 +79,7 @@ def gethardaddress(wallet: dict):
         symbol = wallet["symbol"]
         seed_phrase = wallet["mnemonic"]
         privkey = wallet["root_xprivate_key"]
-        index = len(wallet["children"])
+        index = len(wallet["receiving"])
         print("Current children:", index)
         hdwallet: HDWallet = HDWallet(symbol=symbol)
         hdwallet.from_mnemonic(seed_phrase)
@@ -95,7 +91,7 @@ def gethardaddress(wallet: dict):
         hdwallet.from_index(index+1)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
-        if loads in wallet["children"]:
+        if loads in wallet["receiving"]:
             print("Wallet already found")
             return None
         else:
@@ -110,7 +106,7 @@ def gethardaddress(wallet: dict):
         symbol = wallet["symbol"]
         seed_phrase = wallet["mnemonic"]
         privkey = wallet["root_xprivate_key"]
-        index = len(wallet["children"])
+        index = len(wallet["receiving"])
         print("Current children:", index)
         hdwallet: HDWallet = HDWallet(symbol=symbol)
         hdwallet.from_mnemonic(seed_phrase)
@@ -122,7 +118,7 @@ def gethardaddress(wallet: dict):
         hdwallet.from_index(index+1)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
-        if loads in wallet["children"]:
+        if loads in wallet["receiving"]:
             print("Wallet already found")
             return None
         else:
@@ -139,7 +135,7 @@ def getchangeaddress(wallet: dict):
         symbol = wallet["symbol"]
         seed_phrase = wallet["mnemonic"]
         privkey = wallet["root_xprivate_key"]
-        index = len(wallet["children"])
+        index = len(wallet["change"])
         print("Current children:", index)
         hdwallet: HDWallet = HDWallet(symbol=symbol)
         hdwallet.from_mnemonic(seed_phrase)
@@ -147,19 +143,18 @@ def getchangeaddress(wallet: dict):
         hdwallet.from_index(1, hardened=True)
         hdwallet.from_index(0, hardened=True)
 
-        hdwallet.from_index(0)
-        hdwallet.from_index(index+1)
+        hdwallet.from_index(1)
+        hdwallet.from_index(index)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
-        if loads in wallet["children"]:
+        if loads in wallet["change"]:
             print("Wallet already found")
             return None
         else:
             return loads
-
     else:
         if wallet["path"] == "m/44'/0'/0'/0/0":
-            derivation  = LEGACY
+            derivation = LEGACY
         elif wallet["path"] == "m/49'/0'/0'/0/0":
             derivation = SEGWIT_P2SH
         else:
@@ -167,7 +162,7 @@ def getchangeaddress(wallet: dict):
         symbol = wallet["symbol"]
         seed_phrase = wallet["mnemonic"]
         privkey = wallet["root_xprivate_key"]
-        index = len(wallet["children"])
+        index = len(wallet["change"])
         print("Current children:", index)
         hdwallet: HDWallet = HDWallet(symbol=symbol)
         hdwallet.from_mnemonic(seed_phrase)
@@ -175,11 +170,11 @@ def getchangeaddress(wallet: dict):
         hdwallet.from_index(0, hardened=True)
         hdwallet.from_index(0, hardened=True)
 
-        hdwallet.from_index(0)
-        hdwallet.from_index(index+1)
+        hdwallet.from_index(1)
+        hdwallet.from_index(index)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
-        if loads in wallet["children"]:
+        if loads in wallet["change"]:
             print("Wallet already found")
             return None
         else:
@@ -218,7 +213,12 @@ def getwalletbalance(wallet: dict):
         amount: float = getbalance(address)
         print(address, amount, wallet["symbol"])
     #get balances on the child wallets
-    for childwallet in wallet["children"]:
+    for childwallet in wallet["receiving"]:
+        for receiving_address in childwallet["addresses"].values():
+            amount: float = getbalance(address)
+            print(receiving_address, amount, wallet["symbol"])
+            sum += amount
+    for childwallet in wallet["change"]:
         for receiving_address in childwallet["addresses"].values():
             amount: float = getbalance(address)
             print(receiving_address, amount, wallet["symbol"])

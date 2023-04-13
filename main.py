@@ -118,10 +118,12 @@ while running:
             print("Please input a seed phrase")
             seed_phrase = input()
             test_wallet = wallet_utils.seed_testnet_wallet(seed_phrase)
-            test_wallet["children"] = []
+            test_wallet["receiving"] = []
+            test_wallet["change"] = []
         else:
             test_wallet = wallet_utils.create_testnet_wallet()
-            test_wallet["children"] = []
+            test_wallet["receiving"] = []
+            test_wallet["change"] = []
         #Save wallet to the wallet file
         wallets[walletname] = test_wallet
         config_file = open(".config.json", "w")
@@ -157,8 +159,14 @@ while running:
             resp = input()
         print("You selected:", resp)
         wallet = wallets[resp]
-        child = wallet_utils.gethardaddress(wallet)
-        wallet["children"].append(child)
+        print("Is this a Change Address? Y/n")
+        resp = input()
+        if resp.lower() == "y":
+            child = wallet_utils.getchangeaddress(wallet)
+            wallet["change"].append(child)
+        else:
+            child = wallet_utils.gethardaddress(wallet)
+            wallet["receiving"].append(child)
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
