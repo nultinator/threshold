@@ -31,6 +31,7 @@ def create_wallet():
 
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
+    clean_addresses(loads)
     loads["receiving"] = []
     loads["change"] = []
     return loads
@@ -42,6 +43,42 @@ def create_wallet():
 
 
 #####################################
+def clean_addresses(wallet: dict):
+    if wallet["network"] == "testnet":
+        if wallet["path"] == "m/44'/1'/0'/0/0":
+            derivation = LEGACY
+        elif wallet["path"] == "m/49'/1'/0'/0/0":
+            derivation = SEGWIT_P2SH
+        else:
+            derivation = SEGWIT_NATIVE
+    else:
+        if wallet["path"] == "m/44'/0'/0'/0/0":
+            derivation = LEGACY
+        elif wallet["path"] == "m/49'/0'/0'/0/0":
+            derivation = SEGWIT_P2SH
+        else:
+            derivation = SEGWIT_NATIVE
+    if derivation == SEGWIT_NATIVE:
+        wallet["addresses"].pop("p2pkh")
+        wallet["addresses"].pop("p2sh")
+        wallet["addresses"].pop("p2wpkh_in_p2sh")
+        wallet["addresses"].pop("p2wsh")
+        wallet["addresses"].pop("p2wsh_in_p2sh")
+        return wallet
+    elif derivation == SEGWIT_P2SH:
+        wallet["addresses"].pop("p2pkh")
+        wallet["addresses"].pop("p2sh")
+        wallet["addresses"].pop("p2wpkh")
+        wallet["addresses"].pop("p2wpkh_in_p2sh")
+        wallet["addresses"].pop("p2wsh_in_p2sh")
+        return wallet
+    elif derivation == LEGACY:
+        wallet["addresses"].pop("p2wpkh")
+        wallet["addresses"].pop("p2wsh")
+        return wallet
+    else:
+        print("Derivation not supported")
+        return None
 
 
 #Generates NON-HARDENED child wallets based on the root xpublic key
@@ -91,6 +128,7 @@ def gethardaddress(wallet: dict):
         hdwallet.from_index(index+1)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
+        clean_addresses(loads)
         if loads in wallet["receiving"]:
             print("Wallet already found")
             return None
@@ -118,6 +156,7 @@ def gethardaddress(wallet: dict):
         hdwallet.from_index(index+1)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
+        clean_addresses(loads)
         if loads in wallet["receiving"]:
             print("Wallet already found")
             return None
@@ -147,6 +186,7 @@ def getchangeaddress(wallet: dict):
         hdwallet.from_index(index)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
+        clean_addresses(loads)
         if loads in wallet["change"]:
             print("Wallet already found")
             return None
@@ -174,6 +214,7 @@ def getchangeaddress(wallet: dict):
         hdwallet.from_index(index)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
         loads = json.loads(dumps)
+        clean_addresses(loads)
         if loads in wallet["change"]:
             print("Wallet already found")
             return None
