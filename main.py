@@ -216,7 +216,7 @@ while running:
         selector: int = 0
         for walletname, walletinfo in wallets.items():
             network: str = walletinfo["network"]
-            print(selector, walletname, network)
+            print(selector, walletname,"--"+network)
             selector += 1
         print("Please enter the name of the wallet you wish to use")
         #user chooses a wallet to transact from
