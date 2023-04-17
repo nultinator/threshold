@@ -19,18 +19,24 @@ def get_all_outputs(wallet: dict):
     for address in wallet["addresses"].values():
         utxos = wallet_utils.listunspent(address)
         for utxo in utxos:
+            #add private key for signing transactions
+            utxo["signing_key"] = wallet["private_key"]
             spendable.append(utxo)
     #check our receiving children for spendable UTXOs and add them to the list
     for child in wallet["receiving"]:
         for address in child["addresses"].values():
             utxos = wallet_utils.listunspent(address)
             for utxo in utxos:
+                #add private key for signing transactions
+                utxo["signing_key"] = child["private_key"]
                 spendable.append(utxo)
     #check our change children for spendable UTXOs and add the to the list
     for child in wallet["change"]:
         for address in child["addresses"].values():
             utxos = wallet_utils.listunspent(address)
             for utxo in utxos:
+                #add private key for signing transactions
+                utxo["signing_key"] = child["private_key"]
                 spendable.append(utxo)
     #once we've counted all the spendable UTXOs, return the list
     return spendable
@@ -59,7 +65,8 @@ def input_selector(tx_array):
         #Display the selector, txid, and the value of each UTXO
         print("Available UTXOs")
         for tx in tx_array:
-            print(selector, tx["txid"], tx["value"], "sat")
+            btcvalue = tx["value"]/100_000_000
+            print(selector, tx["txid"], tx["value"], "sat", btcvalue, "BTC")
             selector += 1
         #user selects the utxo to use here
         resp: int = int(input())
