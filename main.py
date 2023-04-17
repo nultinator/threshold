@@ -95,6 +95,7 @@ while running:
     print("7 Export Wallet")
     print("8 Run Tests")
     print("9 Quit")
+    print("10 Experimental Features")
     resp: int = int(input())
     #Generate a wallet
     if resp == 1:
@@ -268,6 +269,15 @@ while running:
         print("Terminating Program")
         #change the running boolean to false and exit program
         running: bool = False
+    elif resp == 10:
+        print("Available Features:")
+        print("1 Chain Stats")
+        resp: int = int(input())
+        if resp == 1:
+            #print(wallet_utils.getpendingbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69")[0]["vout"][-1]["value"]/100_000_000)
+            print(wallet_utils.getbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69"))
+        else:
+            print("Sorry, your choice is not valid")
     else:
         print("Please select a valid choice")
 

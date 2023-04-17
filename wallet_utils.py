@@ -297,6 +297,14 @@ def restore_wallet(restore_keys: str):
     return loads
 #Retrieve a balance on mainnet or testnet
 #Uses the address prefix to determine network
+def getpendingbalance(address: str):
+    if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
+        return bitcoin_explorer.addr.get(address).data
+    elif address[0:3] == "tb1" or address[0] =="m" or address[0] == "n" or address[0] == "2":
+        return bitcoin_testnet_explorer.addr.get_unconfirmed_tx_history(address).data
+    else:
+        return "address {} not a valid BTC or BTCTEST address".format(address)
+
 def getbalance(address: str):
     if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
         return bitcoin_explorer.addr.get(address).data["chain_stats"]["funded_txo_sum"]/100_000_000
@@ -313,20 +321,20 @@ def getwalletbalance(wallet: dict):
         amount: float = getbalance(address)
         print(address, amount, wallet["symbol"])
         #add the balance to our total
-        sum += amount
+        sum = amount + sum
     #get balances on the child wallets
     for childwallet in wallet["receiving"]:
         for receiving_address in childwallet["addresses"].values():
-            amount: float = getbalance(address)
+            amount: float = getbalance(receiving_address)
             print(receiving_address, amount, wallet["symbol"])
             #add the balance to our total
-            sum += amount
+            sum = amount + sum
     for childwallet in wallet["change"]:
         for receiving_address in childwallet["addresses"].values():
-            amount: float = getbalance(address)
+            amount: float = getbalance(receiving_address)
             print(receiving_address, amount, wallet["symbol"])
             #add the balance to our total
-            sum += amount
+            sum = amount + sum
     #return the total balance
     return sum
 
