@@ -6,6 +6,17 @@ from bitcoinutils.utils import to_satoshis
 from bitcoinutils.transactions import Transaction, TxInput, TxOutput
 from bitcoinutils.keys import P2pkhAddress, PrivateKey, P2wpkhAddress
 from bitcoinutils.script import Script
+from bloxplorer import bitcoin_explorer, bitcoin_testnet_explorer
+
+from operator import itemgetter
+
+def get_fees(network):
+    if network == "mainnet":
+        return bitcoin_explorer.fees.get_estimates().data["1"]
+    elif network == "testnet":
+        return bitcoin_testnet_explorer.fees.get_estimates().data["1"]
+    else:
+        print("An error occured, network not supported")
 
 
 

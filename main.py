@@ -271,11 +271,23 @@ while running:
         running: bool = False
     elif resp == 10:
         print("Available Features:")
-        print("1 Chain Stats")
+        print("1 Unconfirmed Balance (not working)")
+        print("2 Get fee estimates")
         resp: int = int(input())
         if resp == 1:
             #print(wallet_utils.getpendingbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69")[0]["vout"][-1]["value"]/100_000_000)
             print(wallet_utils.getbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69"))
+        elif resp == 2:
+            print("Please select a network")
+            print("1 Mainnet")
+            print("2 Testnet")
+            resp: int = int(input())
+            if resp == 1:
+                print(tx_builder.get_fees("mainnet"), "sat/vb")
+            elif resp == 2:
+                print(tx_builder.get_fees("testnet"), "sat/vb")
+            else:
+                print("Network not valid")
         else:
             print("Sorry, your choice is not valid")
     else:
