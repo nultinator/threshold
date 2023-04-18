@@ -31,7 +31,7 @@ def get_all_outputs(wallet: dict):
         utxos = wallet_utils.listunspent(address)
         for utxo in utxos:
             #add private key for signing transactions
-            utxo["signing_key"] = wallet["private_key"]
+            utxo["signing_key"] = wallet["wif"]
             spendable.append(utxo)
     #check our receiving children for spendable UTXOs and add them to the list
     for child in wallet["receiving"]:
@@ -39,7 +39,7 @@ def get_all_outputs(wallet: dict):
             utxos = wallet_utils.listunspent(address)
             for utxo in utxos:
                 #add private key for signing transactions
-                utxo["signing_key"] = child["private_key"]
+                utxo["signing_key"] = child["wif"]
                 spendable.append(utxo)
     #check our change children for spendable UTXOs and add the to the list
     for child in wallet["change"]:
@@ -47,19 +47,70 @@ def get_all_outputs(wallet: dict):
             utxos = wallet_utils.listunspent(address)
             for utxo in utxos:
                 #add private key for signing transactions
-                utxo["signing_key"] = child["private_key"]
+                utxo["signing_key"] = child["wif"]
                 spendable.append(utxo)
     #once we've counted all the spendable UTXOs, return the list
     return spendable
 
 def createrawtransaction(wallet: dict):
+    network: str = wallet["network"]
+    setup(network)
     #get our spendable coins
-    outputs = get_all_outputs(wallet)
+    outputs: list = get_all_outputs(wallet)
+    print("Please enter an address to send to")
+    to_address: str = input()
+    max_avail = wallet_utils.getwalletbalance(wallet)
+    print("How much would you like to send? Max:", max_avail)
+    amount = float(input())
+    while amount > max_avail:
+        print("Amount higher than balance, please try again")
+        amount = float(input())
     #allow the user to decide which ones to spend
-    inputs = input_selector(outputs)
+    inputs: list = input_selector(outputs)
     #print the coins that we're about to spend
     print("You chose the following UTXOS")
     print(inputs)
+    for utxo in inputs:
+        wif: str = utxo.get("signing_key")
+        priv_key: PrivateKey = PrivateKey(wif=wif)
+        print("Signing key: ", priv_key)
+        pubkey = priv_key.get_public_key()
+        print("Pubkey: ", pubkey)
+        from_address = pubkey.get_segwit_address()
+        value = utxo.get("value")
+        txid = utxo.get("txid")
+        vout = utxo.get("vout")
+        print("TXINFO")
+        print("txid: ", txid)
+        print("vout: ", vout)
+        print("value: ", value)
+        txin = TxInput(txid, vout)
+        toAddress = P2wpkhAddress(to_address)
+        script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+                            "OP_EQUALVERIFY", "OP_CHECKSIG"])
+        txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+        tx = Transaction([txin], [txout], has_segwit=True)
+
+        print("\nRaw transaction:\n" + tx.serialize())
+
+        sig = priv_key.sign_segwit_input(tx, vout, script_code, value)
+
+        tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+
+        print("\nSigned transaction:\n" + tx.serialize())
+
+        print("\nTxid:\n" + tx.get_txid())
+
+        attempt = bitcoin_testnet_explorer.tx.post(tx.serialize())
+
+        print(attempt)
+
+
+
+    #get and print the current feerate
+    fee: int = get_fees(network)
+    
+
     #We'll build the unsigned transaction here
     #Afterward, we'll sign it here
     #Then we'll submit to the network
@@ -74,7 +125,7 @@ def input_selector(tx_array):
     spends = []
     while building:
         #Display the selector, txid, and the value of each UTXO
-        print("Available UTXOs")
+        print("Please select from your available UTXOs")
         for tx in tx_array:
             btcvalue = tx["value"]/100_000_000
             print(selector, tx["txid"], tx["value"], "sat", btcvalue, "BTC")

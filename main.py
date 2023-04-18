@@ -91,7 +91,7 @@ while running:
     print("3 Create a Testnet Wallet")
     print("4 Restore a Mainnet Wallet")
     print("5 Generate Receiving Address")
-    print("6 Send a transaction (NOT WORKING), WARNING UNDER CONSTRUCTION: THIS WILL DISPLAY YOUR PRIVATE KEYS")
+    print("6 Send a transaction (PARTIALLY WORKING only spends 1 UTXO per transaction), WARNING: THIS WILL DISPLAY YOUR PRIVATE KEYS")
     print("7 Export Wallet")
     print("8 Run Tests")
     print("9 Quit")
