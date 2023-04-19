@@ -91,7 +91,7 @@ while running:
     print("3 Create a Testnet Wallet")
     print("4 Restore a Mainnet Wallet")
     print("5 Generate Receiving Address")
-    print("6 Send a transaction (PARTIALLY WORKING only spends 1 UTXO per transaction), WARNING: THIS WILL DISPLAY YOUR PRIVATE KEYS")
+    print("6 Send a transaction (Multi_Inputs are Partially working), WARNING: THIS WILL DISPLAY YOUR PRIVATE KEYS")
     print("7 Export Wallet")
     print("8 Run Tests")
     print("9 Quit")
@@ -224,7 +224,7 @@ while running:
         #find the wallet in memory
         choice = wallets[resp]
         #attempt to build a transaction
-        tx_builder.createrawtransaction(choice)
+        tx_builder.multi_input_transaction(choice)
     #Export Wallet
     elif resp == 7:
         print("Exporting Wallet")

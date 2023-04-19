@@ -54,6 +54,10 @@ def get_all_outputs(wallet: dict):
 
 def createrawtransaction(wallet: dict):
     network: str = wallet["network"]
+    if network == "mainnet":
+        explorer = bitcoin_explorer
+    elif network == "testnet":
+        explorer = bitcoin_testnet_explorer
     setup(network)
     #get our spendable coins
     outputs: list = get_all_outputs(wallet)
@@ -70,6 +74,8 @@ def createrawtransaction(wallet: dict):
     #print the coins that we're about to spend
     print("You chose the following UTXOS")
     print(inputs)
+    spending = []
+    outs = []
     for utxo in inputs:
         wif: str = utxo.get("signing_key")
         priv_key: PrivateKey = PrivateKey(wif=wif)
@@ -85,11 +91,13 @@ def createrawtransaction(wallet: dict):
         print("vout: ", vout)
         print("value: ", value)
         txin = TxInput(txid, vout)
+        spending.append(txin)
         toAddress = P2wpkhAddress(to_address)
         script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
                             "OP_EQUALVERIFY", "OP_CHECKSIG"])
         txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
-        tx = Transaction([txin], [txout], has_segwit=True)
+        outs.append(txout)
+        tx = Transaction(spending, outs, has_segwit=True)
 
         print("\nRaw transaction:\n" + tx.serialize())
 
@@ -101,9 +109,86 @@ def createrawtransaction(wallet: dict):
 
         print("\nTxid:\n" + tx.get_txid())
 
-        attempt = bitcoin_testnet_explorer.tx.post(tx.serialize())
+        attempt = explorer.tx.post(tx.serialize())
 
-        print(attempt)
+    print(attempt.data)
+
+
+
+    #get and print the current feerate
+    fee: int = get_fees(network)
+    
+
+    #We'll build the unsigned transaction here
+    #Afterward, we'll sign it here
+    #Then we'll submit to the network
+
+def multi_input_transaction(wallet: dict):
+    network: str = wallet["network"]
+    if network == "mainnet":
+        explorer = bitcoin_explorer
+    elif network == "testnet":
+        explorer = bitcoin_testnet_explorer
+    setup(network)
+    #get our spendable coins
+    outputs: list = get_all_outputs(wallet)
+    print("Please enter an address to send to")
+    to_address: str = input()
+    max_avail = wallet_utils.getwalletbalance(wallet)
+    print("How much would you like to send? Max:", max_avail)
+    amount = float(input())
+    while amount > max_avail:
+        print("Amount higher than balance, please try again")
+        amount = float(input())
+    #allow the user to decide which ones to spend
+    inputs: list = input_selector(outputs)
+    #print the coins that we're about to spend
+    print("You chose the following UTXOS")
+    print(inputs)
+    spending = []
+    outs = []
+    funded_value: int = 0
+    for utxo in inputs:
+        wif: str = utxo.get("signing_key")
+        priv_key: PrivateKey = PrivateKey(wif=wif)
+        print("Signing key: ", priv_key)
+        pubkey = priv_key.get_public_key()
+        print("Pubkey: ", pubkey)
+        from_address = pubkey.get_segwit_address()
+        value = utxo.get("value")
+        txid = utxo.get("txid")
+        vout = utxo.get("vout")
+        print("TXINFO")
+        print("txid: ", txid)
+        print("vout: ", vout)
+        print("value: ", value)
+        funded_value += value
+        txin = TxInput(txid, vout)
+        spending.append(txin)
+    toAddress = P2wpkhAddress(to_address)
+    script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+                            "OP_EQUALVERIFY", "OP_CHECKSIG"])
+    txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    outs.append(txout)
+    tx = Transaction(spending, outs, has_segwit=True)
+    selector: int = 0
+    for utxo in inputs:
+
+        print("\nRaw transaction:\n" + tx.serialize())
+
+        sig = priv_key.sign_segwit_input(tx, selector, script_code, funded_value)
+
+        tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+
+        selector += 1
+
+    print("\nSigned transaction:\n" + tx.serialize())
+
+    print("\nTxid:\n" + tx.get_txid())
+
+    attempt = explorer.tx.post(tx.serialize())
+
+    print(attempt.data)
 
 
 
