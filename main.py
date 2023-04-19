@@ -275,8 +275,9 @@ while running:
         print("2 Get fee estimates")
         resp: int = int(input())
         if resp == 1:
-            #print(wallet_utils.getpendingbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69")[0]["vout"][-1]["value"]/100_000_000)
-            print(wallet_utils.getbalance("tb1qqrvj3yfywwatxvcsvxhxd3kxeq8erfah08hl69"))
+            print("Please enter an address")
+            resp: str = input()
+            print(wallet_utils.getpendingbalance(resp))
         elif resp == 2:
             print("Please select a network")
             print("1 Mainnet")
