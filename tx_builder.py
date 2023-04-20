@@ -166,6 +166,96 @@ def multi_input_transaction(wallet: dict):
         txin = TxInput(txid, vout)
         spending.append(txin)
     toAddress = P2wpkhAddress(to_address)
+    #script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+    #                        "OP_EQUALVERIFY", "OP_CHECKSIG"])
+    txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    tx = Transaction(spending, outs, has_segwit=True)
+
+    outs.append(txout)
+    selector: int = 0
+    print("SIZE:", tx.get_size())
+    feerate: float = get_fees(network)
+    estimated_fee: int = (feerate * tx.get_size())
+    if estimated_fee < 110:
+        estimated_fee = 150
+    print("Estimatedfee:", estimated_fee)
+    change: int = funded_value - to_satoshis(amount) - estimated_fee
+    print("Change:", change)
+    changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+    print("Change:", changeAddress.to_string(), change)
+    changeout = TxOutput(change, changeAddress.to_script_pub_key())
+    outs.append(changeout)
+    tx = Transaction(spending, outs, has_segwit=True)
+
+    
+    for utxo in inputs:
+
+        #print("\nRaw transaction:\n" + tx.serialize())
+
+        print("WIF", wif)
+
+        priv_key = PrivateKey(wif=wif)
+        pubkey = priv_key.get_public_key()
+        from_address = pubkey.get_segwit_address()
+        sig = priv_key.sign_segwit_input(tx, selector, Script([
+            "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+            "OP_EQUALVERIFY", "OP_CHECKSIG"]
+        ), funded_value)
+
+
+        tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+
+        selector += 1
+
+    print("\nSigned transaction:\n" + tx.serialize())
+
+    print("\nTxid:\n" + tx.get_txid())
+
+    attempt = explorer.tx.post(tx.serialize())
+
+    print(attempt.data)
+
+def sendmany(wallet: dict):
+    network: str = wallet["network"]
+    if network == "mainnet":
+        explorer = bitcoin_explorer
+    elif network == "testnet":
+        explorer = bitcoin_testnet_explorer
+    setup(network)
+    #get our spendable coins
+    outputs: list = get_all_outputs(wallet)
+    print("Please enter an address to send to")
+    to_address: str = input()
+    max_avail = wallet_utils.getwalletbalance(wallet)
+    print("How much would you like to send? Max:", max_avail)
+    amount = float(input())
+    while amount > max_avail:
+        print("Amount higher than balance, please try again")
+        amount = float(input())
+    target = to_satoshis(amount)
+    spending = []
+    outs = []
+    funded_value: int = 0
+
+    while funded_value < target:
+        for utxo in inputs:
+            wif: str = utxo.get("signing_key")
+            priv_key: PrivateKey = PrivateKey(wif=wif)
+            print("Signing key: ", priv_key)
+            pubkey = priv_key.get_public_key()
+            print("Pubkey: ", pubkey)
+            from_address = pubkey.get_segwit_address()
+            value = utxo.get("value")
+            txid = utxo.get("txid")
+            vout = utxo.get("vout")
+            print("TXINFO")
+            print("txid: ", txid)
+            print("vout: ", vout)
+            print("value: ", value)
+            funded_value += value
+            txin = TxInput(txid, vout)
+            spending.append(txin)
+    toAddress = P2wpkhAddress(to_address)
     script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
                             "OP_EQUALVERIFY", "OP_CHECKSIG"])
     txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
