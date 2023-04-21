@@ -254,79 +254,122 @@ def multi_input_transaction(wallet: dict):
 #Sendmany function --Unfinished, this will be the equivalent of the full node "sendmany" rpc
 #ideally, user inputs an amount and a list of addresses, the function does the rest
 def sendmany(wallet: dict):
+    #figure out which network we're using
     network: str = wallet["network"]
     if network == "mainnet":
+        #mainnet block explorer
         explorer = bitcoin_explorer
     elif network == "testnet":
+        #testnet block explorer
         explorer = bitcoin_testnet_explorer
     setup(network)
     #get our spendable coins
     outputs: list = get_all_outputs(wallet)
     print("Please enter an address to send to")
+    #Get the address to send to
     to_address: str = input()
+    #show the maximum amount (i.e. wallet balance)
     max_avail = wallet_utils.getwalletbalance(wallet)
     print("How much would you like to send? Max:", max_avail)
+    #user decides how much to send
     amount = float(input())
+    #while our amount is greater than our balance, try again
     while amount > max_avail:
         print("Amount higher than balance, please try again")
         amount = float(input())
-    target = to_satoshis(amount)
+    #allow the user to decide which ones to spend
+    #print the coins that we're about to spend
+    #create a list of UTXOs going into the transaction
     spending = []
+    #create a list of outputs for the transaction
     outs = []
+    #create a list of private keys to sign with
+    keys = []
+    #create a list of values to sign (Corresponds with our "spending list")
+    values = []
+    #full value of the transaction before the UTXOs are added
     funded_value: int = 0
-
-    while funded_value < target:
-        for utxo in inputs:
+    while funded_value < to_satoshis(amount):
+    #iterate through our inputs
+        for utxo in outputs:
+            #get the WIF for each UTXO
             wif: str = utxo.get("signing_key")
-            priv_key: PrivateKey = PrivateKey(wif=wif)
-            print("Signing key: ", priv_key)
-            pubkey = priv_key.get_public_key()
-            print("Pubkey: ", pubkey)
-            from_address = pubkey.get_segwit_address()
+            #add it to the list of keys
+            keys.append(wif)
+            #get the value, txid and vout of each UTXO
             value = utxo.get("value")
             txid = utxo.get("txid")
             vout = utxo.get("vout")
+            #display each coin going into the transaction
             print("TXINFO")
             print("txid: ", txid)
             print("vout: ", vout)
             print("value: ", value)
+            #add the value to our total funded value
             funded_value += value
+            #add the value to our values list
+            values.append(value)
+            #create the input
             txin = TxInput(txid, vout)
+            #add the input to our spending list
             spending.append(txin)
+    #Create a SegWit Address object from the receiving address
     toAddress = P2wpkhAddress(to_address)
-    script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
-                            "OP_EQUALVERIFY", "OP_CHECKSIG"])
+    #Create the output for the address
     txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
-    outs.append(txout)
+    #instantiate the transaction
     tx = Transaction(spending, outs, has_segwit=True)
-    selector: int = 0
-    for utxo in inputs:
-
-        print("\nRaw transaction:\n" + tx.serialize())
-
-        sig = priv_key.sign_segwit_input(tx, selector, script_code, funded_value)
-
+    #add the output to our list of outs
+    outs.append(txout)
+    #show the current size of the transaction
+    print("SIZE:", tx.get_size())
+    #get the current fee rate
+    feerate: float = get_fees(network)
+    #estimate the fee per input
+    estimated_fee: int = (feerate * tx.get_size())
+    #if the estimated fee is too low, bring it to 150 sat per input
+    if estimated_fee < 110:
+        estimated_fee = 150
+    #update the fee by the amount of inputs
+    estimated_fee = estimated_fee * len(spending)
+    print("Estimatedfee:", estimated_fee)
+    #Calculate the change left over
+    change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
+    print("Change:", change)
+    #create an unused address for the change
+    changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+    print("Change:", changeAddress.to_string(), change)
+    #create an output for the change
+    changeout = TxOutput(change, changeAddress.to_script_pub_key())
+    #add the output to our outs list
+    outs.append(changeout)
+    #update the transaction
+    tx = Transaction(spending, outs, has_segwit=True)
+    #This is where it gets interesting
+    #enumerate through the list of coins we're spending    
+    for i, utxo in enumerate(spending):
+        #find the corresponding private key in the keys list
+        wif = keys[i]
+        #turn in into a PrivateKey object
+        priv_key = PrivateKey(wif=wif)
+        #get the pubkey from the private key
+        pubkey = priv_key.get_public_key()
+        #sign the UTXO and the corresponding value in the values list
+        sig = priv_key.sign_segwit_input(tx, i, Script([
+            "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+            "OP_EQUALVERIFY", "OP_CHECKSIG"])
+        , values[i])
+        #This is SegWit, you have to add a witness to the signature
         tx.witnesses.append(Script([sig, pubkey.to_hex()]))
-
-        selector += 1
-
+    #Now that we're done building the transaction, print the hex
     print("\nSigned transaction:\n" + tx.serialize())
-
+    #Calculate and show the txid
     print("\nTxid:\n" + tx.get_txid())
-
+    #Submit the transaction to the network through the block explorer
     attempt = explorer.tx.post(tx.serialize())
-
+    #Print the response, IT SHOULD BE EXACTLY THE SAME AS THE TXID ABOVE
+    #If not, we have a problem
     print(attempt.data)
-
-
-
-    #get and print the current feerate
-    fee: int = get_fees(network)
-    
-
-    #We'll build the unsigned transaction here
-    #Afterward, we'll sign it here
-    #Then we'll submit to the network
     
 #Takes a list of UTXOs and returns a list of UTXOs to be used in a new transaction
 def input_selector(tx_array):

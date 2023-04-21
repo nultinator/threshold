@@ -321,6 +321,7 @@ def getwalletbalance(wallet: dict):
     #This sum below will be the total balance of the wallet
     sum: float = 0
     #get balances on the parent wallet
+    print("Wallet Balances")
     for address in wallet["addresses"].values():
         amount: float = getbalance(address)
         print(address, amount, wallet["symbol"])
