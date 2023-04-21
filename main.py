@@ -280,10 +280,23 @@ while running:
         running: bool = False
     elif resp == 10:
         print("Available Features:")
-        print("1 Unconfirmed Balance (not working)")
+        print("0 Create Wallet Set")
+        print("1 Unconfirmed Balance")
         print("2 Get fee estimates")
         resp: int = int(input())
-        if resp == 1:
+        if resp == 0:
+            print("Please select a wallet")
+            for wallet in wallets:
+                print(wallet)
+            resp: str = input()
+            wallet = wallets[resp]
+            new_wallet = wallet_utils.create_wallet_set(wallet)
+            wallet_utils.getwalletbalance(new_wallet)
+            wallet = new_wallet
+            config_file = open(".config.json", "w")
+            config_file.write(json.dumps(wallets))
+            config_file.close()
+        elif resp == 1:
             print("Please enter an address")
             resp: str = input()
             print(wallet_utils.getpendingbalance(resp))

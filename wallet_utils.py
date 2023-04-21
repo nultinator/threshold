@@ -42,6 +42,11 @@ def create_wallet():
 #########CREATE WALLET SET###########
 
 #Build a full electrum wallet consisting of receiving and change addresses
+def create_wallet_set(wallet: dict):
+    for i in range(1, 31):
+        wallet["receiving"].append(gethardaddress(wallet))
+        wallet["change"].append(gethardaddress(wallet))
+    return wallet
 
 
 
