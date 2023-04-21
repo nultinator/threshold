@@ -224,7 +224,16 @@ while running:
         #find the wallet in memory
         choice = wallets[resp]
         #attempt to build a transaction
-        tx_builder.multi_input_transaction(choice)
+        print("PLease select an option below")
+        print("0 Simple Send")
+        print("0 Raw Transaction Builder (Not Recommended)")
+        resp: int = int(input())
+        if resp == 0:
+            tx_builder.sendmany(choice)
+        elif resp == 1:
+            tx_builder.multi_input_transaction(choice)
+        else:
+            print("Choice not supported")
     #Export Wallet
     elif resp == 7:
         print("Exporting Wallet")
