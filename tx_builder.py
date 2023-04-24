@@ -194,7 +194,10 @@ def multi_input_transaction(wallet: dict):
         #add the input to our spending list
         spending.append(txin)
     #Create a SegWit Address object from the receiving address
-    toAddress = P2wpkhAddress(to_address)
+    if to_address[0] == "1" or to_address[0] == "m" or to_address[0] == "n":
+        toAddress = P2pkhAddress(to_address)
+    else:
+        toAddress = P2wpkhAddress(to_address)
     #Create the output for the address
     txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
     #instantiate the transaction
@@ -314,7 +317,10 @@ def sendmany(wallet: dict):
             #add the input to our spending list
             spending.append(txin)
     #Create a SegWit Address object from the receiving address
-    toAddress = P2wpkhAddress(to_address)
+    if to_address[0] == "1" or to_address[0] == "m" or to_address[0] == "n":
+        toAddress = P2pkhAddress(to_address)
+    else:
+        toAddress = P2wpkhAddress(to_address)
     #Create the output for the address
     txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
     #instantiate the transaction
