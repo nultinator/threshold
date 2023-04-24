@@ -226,7 +226,7 @@ while running:
         #attempt to build a transaction
         print("PLease select an option below")
         print("0 Simple Send")
-        print("0 Raw Transaction Builder (Not Recommended)")
+        print("1 Raw Transaction Builder (Not Recommended)")
         resp: int = int(input())
         if resp == 0:
             tx_builder.sendmany(choice)

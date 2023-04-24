@@ -57,17 +57,17 @@ def create_wallet_set(wallet: dict):
 def clean_addresses(wallet: dict):
     #Check for testnet derivation
     if wallet["network"] == "testnet":
-        if wallet["path"] == "m/44'/1'/0'/0/0":
+        if wallet["path"][0:5] == "m/44'":
             derivation = LEGACY
-        elif wallet["path"] == "m/49'/1'/0'/0/0":
+        elif wallet["path"][0:5] == "m/49'":
             derivation = SEGWIT_P2SH
         else:
             derivation = SEGWIT_NATIVE
     #Default to mainnet derivation
     else:
-        if wallet["path"] == "m/44'/0'/0'/0/0":
+        if wallet["path"][0:5] == "m/44'":
             derivation = LEGACY
-        elif wallet["path"] == "m/49'/0'/0'/0/0":
+        elif wallet["path"][0:5] == "m/49'":
             derivation = SEGWIT_P2SH
         else:
             derivation = SEGWIT_NATIVE
@@ -92,6 +92,9 @@ def clean_addresses(wallet: dict):
     elif derivation == LEGACY:
         wallet["addresses"].pop("p2wpkh")
         wallet["addresses"].pop("p2wsh")
+        wallet["addresses"].pop("p2sh")
+        wallet["addresses"].pop("p2wpkh_in_p2sh")
+        wallet["addresses"].pop("p2wsh_in_p2sh")
         return wallet
     else:
         print("Derivation not supported")
