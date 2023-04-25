@@ -60,76 +60,7 @@ def get_all_outputs(wallet: dict):
     #once we've counted all the spendable UTXOs, return the list
     return spendable
 #Initial attempt at raw transactions, currently unused, will probably get removed
-def createrawtransaction(wallet: dict):
-    network: str = wallet["network"]
-    if network == "mainnet":
-        explorer = bitcoin_explorer
-    elif network == "testnet":
-        explorer = bitcoin_testnet_explorer
-    setup(network)
-    #get our spendable coins
-    outputs: list = get_all_outputs(wallet)
-    print("Please enter an address to send to")
-    to_address: str = input()
-    max_avail = wallet_utils.getwalletbalance(wallet)
-    print("How much would you like to send? Max:", max_avail)
-    amount = float(input())
-    while amount > max_avail:
-        print("Amount higher than balance, please try again")
-        amount = float(input())
-    #allow the user to decide which ones to spend
-    inputs: list = input_selector(outputs)
-    #print the coins that we're about to spend
-    print("You chose the following UTXOS")
-    print(inputs)
-    spending = []
-    outs = []
-    for utxo in inputs:
-        wif: str = utxo.get("signing_key")
-        priv_key: PrivateKey = PrivateKey(wif=wif)
-        print("Signing key: ", priv_key)
-        pubkey = priv_key.get_public_key()
-        print("Pubkey: ", pubkey)
-        from_address = pubkey.get_segwit_address()
-        value = utxo.get("value")
-        txid = utxo.get("txid")
-        vout = utxo.get("vout")
-        print("TXINFO")
-        print("txid: ", txid)
-        print("vout: ", vout)
-        print("value: ", value)
-        txin = TxInput(txid, vout)
-        spending.append(txin)
-        toAddress = P2wpkhAddress(to_address)
-        script_code = Script(["OP_DUP", "OP_HASH160", pubkey.to_hash160(),
-                            "OP_EQUALVERIFY", "OP_CHECKSIG"])
-        txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
-        outs.append(txout)
-        tx = Transaction(spending, outs, has_segwit=True)
 
-        print("\nRaw transaction:\n" + tx.serialize())
-
-        sig = priv_key.sign_segwit_input(tx, vout, script_code, value)
-
-        tx.witnesses.append(Script([sig, pubkey.to_hex()]))
-
-        print("\nSigned transaction:\n" + tx.serialize())
-
-        print("\nTxid:\n" + tx.get_txid())
-
-        attempt = explorer.tx.post(tx.serialize())
-
-    print(attempt.data)
-
-
-
-    #get and print the current feerate
-    fee: int = get_fees(network)
-    
-
-    #We'll build the unsigned transaction here
-    #Afterward, we'll sign it here
-    #Then we'll submit to the network
 
 def multi_input_transaction(wallet: dict):
     #figure out which network we're using
@@ -141,12 +72,16 @@ def multi_input_transaction(wallet: dict):
         #testnet block explorer
         explorer = bitcoin_testnet_explorer
     setup(network)
+    #Initialze each protocol as a false boolean variable
     Segwit: bool = False
     Legacy: bool = False
+    #If the wallet is SegWit, follow SegWit protocol
     if wallet["path"][0:5] == "m/84'":
         Segwit: bool = True
+    #If the wallet is Legacy, follow Legacy protocol
     elif wallet["path"][0:5] == "m/44'":
         Legacy: bool = True
+    #Let the user know that their wallet is not using a supported protocol
     else:
         print("Wallet type not supported")
     #get our spendable coins
@@ -166,8 +101,6 @@ def multi_input_transaction(wallet: dict):
     #allow the user to decide which ones to spend
     inputs: list = input_selector(outputs)
     #print the coins that we're about to spend
-    print("You chose the following UTXOS")
-    print(inputs)
     #create a list of UTXOs going into the transaction
     spending = []
     #create a list of outputs for the transaction
@@ -201,9 +134,10 @@ def multi_input_transaction(wallet: dict):
         txin = TxInput(txid, vout)
         #add the input to our spending list
         spending.append(txin)
-    #Create a SegWit Address object from the receiving address
+    #If we're sending to a Legacy address, make a p2pkh object out of it
     if to_address[0] == "1" or to_address[0] == "m" or to_address[0] == "n":
         toAddress = P2pkhAddress(to_address)
+    #Otherwise, assume we're sending to a SegWit address
     else:
         toAddress = P2wpkhAddress(to_address)
     #Create the output for the address
@@ -221,6 +155,7 @@ def multi_input_transaction(wallet: dict):
     #if the estimated fee is too low, bring it to 150 sat per input
     if estimated_fee < 110:
         estimated_fee = 150
+    #If this is a legacy transaction, raise our fee by 75% to make sure it gets through
     if Legacy:
         estimated_fee = estimated_fee * 1.75
     #update the fee by the amount of inputs
@@ -230,16 +165,19 @@ def multi_input_transaction(wallet: dict):
     change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
     print("Change:", change)
     #create an unused address for the change
+    #Following SegWit protocol, use a Segwit change address
     if Segwit:
         changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+    #Legacy protocol, use a legacy change address
     elif Legacy:
         changeAddress = P2pkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2pkh"])
+    #Tell the user how much change they have and where it's going to
     print("Change:", changeAddress.to_string(), change)
     #create an output for the change
     changeout = TxOutput(change, changeAddress.to_script_pub_key())
     #add the output to our outs list
     outs.append(changeout)
-    #update the transaction
+    #update the transaction with our change output
     tx = Transaction(spending, outs, has_segwit=True)
     #This is where it gets interesting
     #enumerate through the list of coins we're spending    
@@ -259,11 +197,16 @@ def multi_input_transaction(wallet: dict):
             #This is SegWit, you have to add a witness to the signature
             tx.witnesses.append(Script([sig, pubkey.to_hex()]))
         elif Legacy:
+            #Get the address we're sending from
             from_addr = P2pkhAddress(pubkey.get_address().to_string())
+            #Sign it with the RIPEMD160 hash of the from address
             sig = priv_key.sign_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"]))
+            #Create a string of the from address pubkey hex
             pk = pubkey.to_hex()
+            #Add the signature and the pubkey hex to the transaction
+            #Nodes use the pubkey to verify the signature
             utxo.script_sig = Script([sig, pk])
     #Now that we're done building the transaction, print the hex
     print("\nSigned transaction:\n" + tx.serialize())
@@ -287,14 +230,18 @@ def sendmany(wallet: dict):
         #testnet block explorer
         explorer = bitcoin_testnet_explorer
     setup(network)
+    #Create a false boolean variable for each transaction protocol
     SegWit: bool = False
     Legacy: bool = False
+    #Follow SegWit protocol
     if wallet["path"][0:5] == "m/84'":
         SegWit: bool = True
         print("Segwit enabled")
+    #Follow legacy protocol
     elif wallet["path"][0:5] == "m/44'":
         Legacy: bool = True
         print("Legacy enabled")
+    #Wallet protocol is not supported
     else:
         print("Wallet type not supported")
     #get our spendable coins
@@ -347,12 +294,16 @@ def sendmany(wallet: dict):
             txin = TxInput(txid, vout)
             #add the input to our spending list
             spending.append(txin)
-    #Create a SegWit Address object from the receiving address
+    #Create an Address object from the receiving address
+    #If we're sending to a legacy address, instantiate a legacy address
     if to_address[0] == "1" or to_address[0] == "m" or to_address[0] == "n":
         toAddress = P2pkhAddress(to_address)
+        #Create the output
         txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    #Default to a Segwit address
     else:
         toAddress = P2wpkhAddress(to_address)
+        #Create the output
         txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
     #Create the output for the address
     #txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
@@ -369,6 +320,7 @@ def sendmany(wallet: dict):
     #if the estimated fee is too low, bring it to 150 sat per input
     if estimated_fee < 110:
         estimated_fee = 150
+    #If this is a legacy transaction, up the fee by 75%, we want it to go through
     if Legacy:
         estimated_fee = estimated_fee * 1.75
     #update the fee by the amount of inputs
@@ -378,11 +330,15 @@ def sendmany(wallet: dict):
     change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
     print("Change:", change)
     #create an unused address for the change
+    #If we're on SegWit, send change to a SegWit address
     if SegWit:
         changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+        #Tell the user how much change and where it's going to
         print("Change:", changeAddress.to_string(), change)
+    #If we're on Legacy, send change to a Legacy address
     elif Legacy:
         changeAddress = P2pkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2pkh"])
+        #Tell the user how much change and where it's going to
         print("Change:", changeAddress.to_string(), change)
     else:
         print("Unsupported Change Address")
@@ -390,7 +346,7 @@ def sendmany(wallet: dict):
     changeout = TxOutput(change, changeAddress.to_script_pub_key())
     #add the output to our outs list
     outs.append(changeout)
-    #update the transaction
+    #update the transaction with the change output
     tx = Transaction(spending, outs, has_segwit=True)
     #This is where it gets interesting
     #enumerate through the list of coins we're spending    
@@ -401,7 +357,7 @@ def sendmany(wallet: dict):
         priv_key = PrivateKey(wif=wif)
         #get the pubkey from the private key
         pubkey = priv_key.get_public_key()
-        #sign the UTXO and the corresponding value in the values list
+        #sign the UTXO with its corresponding value from the values list we created earlier
         if SegWit:
             sig = priv_key.sign_segwit_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
@@ -409,12 +365,18 @@ def sendmany(wallet: dict):
             , values[i])
             #This is SegWit, you have to add a witness to the signature
             tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+        #Legacy signature
         elif Legacy:
+            #Get the from address
             from_addr = P2pkhAddress(pubkey.get_address().to_string())
+            #Sign the output and add the RIPEMD160 if the from address
             sig = priv_key.sign_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"]))
+            #Get the hex of the public key we're sending from
             pk = pubkey.to_hex()
+            #Add our signature and the pubkey hex
+            #Nodes need to compare the signature to the public key
             utxo.script_sig = Script([sig, pk])
     #Now that we're done building the transaction, print the hex
     print("\nSigned transaction:\n" + tx.serialize())
@@ -444,7 +406,7 @@ def input_selector(tx_array):
         #user selects the utxo to use here
         resp: int = int(input())
         selection = tx_array[resp]
-        print("You selected", selection)
+        print("You selected", selection["txid"], tx["value"], "sat")
         #add the selected utxo to our "spends list"
         spends.append(selection)
         #remove it from the list of available utxos in "tx_array"

@@ -87,8 +87,7 @@ def clean_addresses(wallet: dict):
         wallet["addresses"].pop("p2wpkh_in_p2sh")
         wallet["addresses"].pop("p2wsh_in_p2sh")
         return wallet
-    #If wallet is legacy, only remove segwit keys
-    # Not sure yet, but I believe we need segwit embedded in scripthash to receive segwit coins in a legacy wallet
+    #If wallet is legacy, remove all other addresses
     elif derivation == LEGACY:
         wallet["addresses"].pop("p2wpkh")
         wallet["addresses"].pop("p2wsh")
@@ -170,11 +169,16 @@ def gethardaddress(wallet: dict):
             derivation = LEGACY
         elif wallet["path"] == "m/49'/0'/0'/0/0":
             derivation = SEGWIT_P2SH
+        #Default to SegWit Native
         else:
             derivation = SEGWIT_NATIVE
+        #Get the coin ticker
         symbol = wallet["symbol"]
+        #Get the seed phrase
         seed_phrase = wallet["mnemonic"]
+        #Get the root private key: ALL WALLETS ARE DERIVED FROM THIS KEY
         privkey = wallet["root_xprivate_key"]
+        #Find out how many receiving wallets already exist
         index = len(wallet["receiving"])
         #create a new wallet on mainnet
         hdwallet: HDWallet = HDWallet(symbol=symbol)
@@ -209,11 +213,16 @@ def getchangeaddress(wallet: dict):
             derivation = LEGACY
         elif wallet["path"] == "m/49'/1'/0'/0/0":
             derivation = SEGWIT_P2SH
+        #Default to SegWit Native
         else:
             derivation = SEGWIT_NATIVE
+        #Get the coin ticker
         symbol = wallet["symbol"]
+        #Get the seed phrase
         seed_phrase = wallet["mnemonic"]
+        #Get the root private key, ALL WALLETS ARE DERIVED FROM THIS KEY
         privkey = wallet["root_xprivate_key"]
+        #Find out how many change wallets already exist
         index = len(wallet["change"])
         #create the wallet
         hdwallet: HDWallet = HDWallet(symbol=symbol)
@@ -223,7 +232,7 @@ def getchangeaddress(wallet: dict):
         hdwallet.from_index(derivation, hardened=True)
         hdwallet.from_index(1, hardened=True)
         hdwallet.from_index(0, hardened=True)
-        #bild the next non-existent child
+        #build the next non-existent child
         hdwallet.from_index(1)
         hdwallet.from_index(index)
         dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
@@ -238,14 +247,20 @@ def getchangeaddress(wallet: dict):
             return loads
     else:
         #Default to mainnet derivation scheme
+        #Legacy derivation
         if wallet["path"] == "m/44'/0'/0'/0/0":
             derivation = LEGACY
+        #SegWit p2sh derivation
         elif wallet["path"] == "m/49'/0'/0'/0/0":
             derivation = SEGWIT_P2SH
+        #Default to native SegWit
         else:
             derivation = SEGWIT_NATIVE
+        #Get the coin ticker
         symbol = wallet["symbol"]
+        #Get the seed phrase
         seed_phrase = wallet["mnemonic"]
+        #Get the root private key, ALL WALLETS ARE DERIVED FROM THIS KEY
         privkey = wallet["root_xprivate_key"]
         index = len(wallet["change"])
         #create the wallet
@@ -306,20 +321,29 @@ def restore_wallet(restore_keys: str):
 #Retrieve a balance on mainnet or testnet
 #Uses the address prefix to determine network
 def getpendingbalance(address: str):
+    #If we're on mainnet, use the mainnet explorer
     if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
         data =  bitcoin_explorer.addr.get(address).data["mempool_stats"]
+        #Return the balance denoted in BTC, not sats
         return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+    #If we're on testnet, use the testnet explorer
     elif address[0:3] == "tb1" or address[0] =="m" or address[0] == "n" or address[0] == "2":
         data = bitcoin_testnet_explorer.addr.get(address).data["mempool_stats"]
+        #Return the balance denoted in BTCTEST, not sats
         return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
     else:
+        #Tell the user that their address is not valid
         return "address {} not a valid BTC or BTCTEST address".format(address)
 
 def getbalance(address: str):
+    #If we're on mainnet, use the mainnet explorer
     if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
         data = bitcoin_explorer.addr.get(address).data["chain_stats"]
+        #return the balance denoted in BTC, not sats
         return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+    #If we're on testnet, use the testnet explorer
     elif address[0:3] == "tb1" or address[0] =="m" or address[0] == "n" or address[0] == "2":
+        #return the balance denoted in BTCTEST, not sats
         data = bitcoin_testnet_explorer.addr.get(address).data["chain_stats"]
         return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
     else:
@@ -332,6 +356,7 @@ def getwalletbalance(wallet: dict):
     print("Wallet Balances")
     for address in wallet["addresses"].values():
         amount: float = getbalance(address)
+        #pending_balance: float() = getpendingbalance(address)
         print(address, amount, wallet["symbol"])
         #add the balance to our total
         sum = amount + sum
@@ -339,12 +364,14 @@ def getwalletbalance(wallet: dict):
     for childwallet in wallet["receiving"]:
         for receiving_address in childwallet["addresses"].values():
             amount: float = getbalance(receiving_address)
+            #pending_balance: str = getpendingbalance(receiving_address)
             print(receiving_address, amount, wallet["symbol"])
             #add the balance to our total
             sum = amount + sum
     for childwallet in wallet["change"]:
         for receiving_address in childwallet["addresses"].values():
             amount: float = getbalance(receiving_address)
+            #pending_balance: float = getpendingbalance(address)
             print(receiving_address, amount, wallet["symbol"])
             #add the balance to our total
             sum = amount + sum

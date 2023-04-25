@@ -62,6 +62,7 @@ while not config:
         print("Please name your wallet")
         #give the wallet a name
         name: str = input()
+        #Add it to the memory
         wallets[name] = new_wallet
         #save the wallet file
         config_file.write(json.dumps(wallets))
@@ -111,12 +112,14 @@ while running:
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
-    #Fetch balances/UTXOS through API
+    #Fetch balances through API
     elif resp == 2:
         print("Wallets")
         for key, value in wallets.items():
+            #Print the wallet name
             print(key)
             total_balance: float = wallet_utils.getwalletbalance(value)
+            #Display the total balance
             print("Total Balance", total_balance, value["symbol"])
     #Create a testnet wallet
     elif resp == 3:
@@ -209,11 +212,12 @@ while running:
                 qr.print_ascii(out=f)
                 f.seek(0)
                 print(f.read())
-    #create a transaction####NOT WORKING########
+    #Create a transaction
     elif resp == 6:
         print("Send a transaction")
         print("Please select a wallet")
         selector: int = 0
+        #List the user's wallets and each network that the wallet is on
         for walletname, walletinfo in wallets.items():
             network: str = walletinfo["network"]
             print(selector, walletname,"--"+network)
@@ -225,15 +229,28 @@ while running:
         choice = wallets[resp]
         #attempt to build a transaction
         print("PLease select an option below")
+        #Build the transaction automatically
         print("0 Simple Send")
+        #Allow theuser to build the transaction manually
         print("1 Raw Transaction Builder (Not Recommended)")
         resp: int = int(input())
         if resp == 0:
+            #Follow "Simple Send" protocol (build transaction automatically)
             tx_builder.sendmany(choice)
         elif resp == 1:
+            #User creates the transaction manually
             tx_builder.multi_input_transaction(choice)
         else:
             print("Choice not supported")
+        #The code below is a bug fix, we already created the change address, but didn't save it
+        #Create the address again
+        change = wallet_utils.getchangeaddress(choice)
+        #Add it to the parent wallet
+        choice["change"].append(change)
+        #Save the wallet file
+        config_file = open(".config.json", "w")
+        config_file.write(json.dumps(wallets))
+        config_file.close()
     #Export Wallet
     elif resp == 7:
         print("Exporting Wallet")
@@ -279,34 +296,45 @@ while running:
         #change the running boolean to false and exit program
         running: bool = False
     elif resp == 10:
+        #Display the experimental features
         print("Available Features:")
         print("0 Create Wallet Set")
         print("1 Unconfirmed Balance")
         print("2 Get fee estimates")
         resp: int = int(input())
         if resp == 0:
+            #Build an Electrum wallet
             print("Please select a wallet")
             for wallet in wallets:
                 print(wallet)
             resp: str = input()
+            #find the selected wallet in memory
             wallet = wallets[resp]
+            #Build the wallet set
             new_wallet = wallet_utils.create_wallet_set(wallet)
+            #Get the balance of our new addresses
             wallet_utils.getwalletbalance(new_wallet)
+            #Update the wallet we chose
             wallet = new_wallet
+            #Save the wallet file
             config_file = open(".config.json", "w")
             config_file.write(json.dumps(wallets))
             config_file.close()
         elif resp == 1:
+            #Get pending balance
             print("Please enter an address")
             resp: str = input()
+            #Send the query to the block explorer and print the result
             print(wallet_utils.getpendingbalance(resp))
         elif resp == 2:
             print("Please select a network")
             print("1 Mainnet")
             print("2 Testnet")
             resp: int = int(input())
+            #Print the mainnet feerate
             if resp == 1:
                 print(tx_builder.get_fees("mainnet"), "sat/vb")
+            #Print the testnet feerate
             elif resp == 2:
                 print(tx_builder.get_fees("testnet"), "sat/vb")
             else:
