@@ -141,6 +141,14 @@ def multi_input_transaction(wallet: dict):
         #testnet block explorer
         explorer = bitcoin_testnet_explorer
     setup(network)
+    Segwit: bool = False
+    Legacy: bool = False
+    if wallet["path"][0:5] == "m/84'":
+        Segwit: bool = True
+    elif wallet["path"][0:5] == "m/44'":
+        Legacy: bool = True
+    else:
+        print("Wallet type not supported")
     #get our spendable coins
     outputs: list = get_all_outputs(wallet)
     print("Please enter an address to send to")
@@ -213,6 +221,8 @@ def multi_input_transaction(wallet: dict):
     #if the estimated fee is too low, bring it to 150 sat per input
     if estimated_fee < 110:
         estimated_fee = 150
+    if Legacy:
+        estimated_fee = estimated_fee * 1.75
     #update the fee by the amount of inputs
     estimated_fee = estimated_fee * len(inputs)
     print("Estimatedfee:", estimated_fee)
@@ -220,7 +230,10 @@ def multi_input_transaction(wallet: dict):
     change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
     print("Change:", change)
     #create an unused address for the change
-    changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+    if Segwit:
+        changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+    elif Legacy:
+        changeAddress = P2pkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2pkh"])
     print("Change:", changeAddress.to_string(), change)
     #create an output for the change
     changeout = TxOutput(change, changeAddress.to_script_pub_key())
@@ -238,12 +251,20 @@ def multi_input_transaction(wallet: dict):
         #get the pubkey from the private key
         pubkey = priv_key.get_public_key()
         #sign the UTXO and the corresponding value in the values list
-        sig = priv_key.sign_segwit_input(tx, i, Script([
-            "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
-            "OP_EQUALVERIFY", "OP_CHECKSIG"])
-        , values[i])
-        #This is SegWit, you have to add a witness to the signature
-        tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+        if Segwit:
+            sig = priv_key.sign_segwit_input(tx, i, Script([
+                "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"])
+            , values[i])
+            #This is SegWit, you have to add a witness to the signature
+            tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+        elif Legacy:
+            from_addr = P2pkhAddress(pubkey.get_address().to_string())
+            sig = priv_key.sign_input(tx, i, Script([
+                "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"]))
+            pk = pubkey.to_hex()
+            utxo.script_sig = Script([sig, pk])
     #Now that we're done building the transaction, print the hex
     print("\nSigned transaction:\n" + tx.serialize())
     #Calculate and show the txid
