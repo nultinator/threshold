@@ -161,6 +161,13 @@ def multi_input_transaction(wallet: dict):
     #update the fee by the amount of inputs
     estimated_fee = estimated_fee * len(inputs)
     print("Estimatedfee:", estimated_fee)
+    print("Would you like to use a custom fee? Y/n")
+    resp: str = input()
+    if resp.lower() == "y":
+        print("Please enter a fee amount (in sats)")
+        fee: int = int(input())
+        print("Custom fee:", fee)
+        estimated_fee = fee
     #Calculate the change left over
     change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
     print("Change:", change)
@@ -245,6 +252,7 @@ def sendmany(wallet: dict):
     else:
         print("Wallet type not supported")
     #get our spendable coins
+    print("Fetching your coins...")
     outputs: list = get_all_outputs(wallet)
     print("Please enter an address to send to")
     #Get the address to send to
@@ -326,6 +334,13 @@ def sendmany(wallet: dict):
     #update the fee by the amount of inputs
     estimated_fee = estimated_fee * len(spending)
     print("Estimatedfee:", estimated_fee)
+    print("Would you like to use a custom fee Y/n")
+    resp: str = input()
+    if resp.lower() == "y":
+        print("Please enter a fee amount (in sats)")
+        custom_fee: int = int(input())
+        print("Custom fee:", custom_fee)
+        estimated_fee = custom_fee
     #Calculate the change left over
     change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
     print("Change:", change)
@@ -383,10 +398,10 @@ def sendmany(wallet: dict):
     #Calculate and show the txid
     print("\nTxid:\n" + tx.get_txid())
     #Submit the transaction to the network through the block explorer
-    attempt = explorer.tx.post(tx.serialize())
+    attempt = str(explorer.tx.post(tx.serialize()).data)
     #Print the response, IT SHOULD BE EXACTLY THE SAME AS THE TXID ABOVE
     #If not, we have a problem
-    print(attempt.data)
+    print(attempt)
     
 #Takes a list of UTXOs and returns a list of UTXOs to be used in a new transaction
 def input_selector(tx_array):
@@ -423,7 +438,6 @@ def input_selector(tx_array):
                 #user does not wish to spend anymore coins, exit the loop
                 building = False
             else:
-                print(spends)
                 continue
     #return the list
     return spends
