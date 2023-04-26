@@ -301,6 +301,8 @@ while running:
         print("0 Create Wallet Set")
         print("1 Unconfirmed Balance")
         print("2 Get fee estimates")
+        print("3 Get transaction")
+        print("4 Remove a Wallet")
         resp: int = int(input())
         if resp == 0:
             #Build an Electrum wallet
@@ -339,6 +341,26 @@ while running:
                 print(tx_builder.get_fees("testnet"), "sat/vb")
             else:
                 print("Network not valid")
+        elif resp == 3:
+            print("Is this a testnet transaction? Y/n")
+            resp: str = input()
+            if resp.lower() == "y":
+                network = "testnet"
+            else:
+                network = "mainnet"
+            print("Please enter a txid")
+            resp: str = input()
+            print(tx_builder.get_tx(resp, network))
+        elif resp == 4:
+            print("Remove a wallet")
+            print("Please enter the name off the wallet you wish to remove")
+            for key in wallets.keys():
+                print(key)
+            resp: str = input()
+            wallets.pop(resp)
+            config_file = open(".config.json", "w")
+            config_file.write(json.dumps(wallets))
+            config_file.close()
         else:
             print("Sorry, your choice is not valid")
     else:

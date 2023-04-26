@@ -398,10 +398,66 @@ def sendmany(wallet: dict):
     #Calculate and show the txid
     print("\nTxid:\n" + tx.get_txid())
     #Submit the transaction to the network through the block explorer
-    attempt = str(explorer.tx.post(tx.serialize()).data)
+    try:
+        attempt = str(explorer.tx.post(tx.serialize()).data)
     #Print the response, IT SHOULD BE EXACTLY THE SAME AS THE TXID ABOVE
     #If not, we have a problem
-    print(attempt)
+        print(attempt)
+    except:
+        print("Transaction failed")
+    print("Would you like to attempt RBF?(Replace by fee) Y/n")
+    resp: str = input()
+    if resp.lower() == "y":
+        outs.clear()
+        outs.append(txout)
+        print("Original fee:", estimated_fee)
+        print("Please choose a higher fee amount (in sats) to try again")
+        fee: int = int(input())
+        change = int(funded_value - to_satoshis(amount) - fee)
+        changeout = TxOutput(change, changeAddress.to_script_pub_key())
+        outs.append(changeout)
+    
+        new_tx = Transaction(spending, outs, has_segwit=True)
+        for i, utxo in enumerate(spending):
+            #find the corresponding private key in the keys list
+            wif = keys[i]
+            #turn in into a PrivateKey object
+            priv_key = PrivateKey(wif=wif)
+            #get the pubkey from the private key
+            pubkey = priv_key.get_public_key()
+            #sign the UTXO with its corresponding value from the values list we created earlier
+            if SegWit:
+                sig = priv_key.sign_segwit_input(new_tx, i, Script([
+                "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"])
+            , values[i])
+            #This is SegWit, you have to add a witness to the signature
+                new_tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+            #Legacy signature
+            elif Legacy:
+                #Get the from address
+                from_addr = P2pkhAddress(pubkey.get_address().to_string())
+                #Sign the output and add the RIPEMD160 if the from address
+                sig = priv_key.sign_input(new_tx, i, Script([
+                "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"]))
+                #Get the hex of the public key we're sending from
+                pk = pubkey.to_hex()
+                #Add our signature and the pubkey hex
+                #Nodes need to compare the signature to the public key
+                utxo.script_sig = Script([sig, pk])
+        attempt = str(explorer.tx.post(new_tx.serialize()).data)
+        print(attempt)
+
+def get_tx(txid: str, network: str):
+    if network == "mainnet":
+        explorer = bitcoin_explorer
+    elif network == "testnet":
+        explorer = bitcoin_testnet_explorer
+    else:
+        print("Unsupported network")
+        return None
+    return explorer.tx.get(txid).data["vin"]
     
 #Takes a list of UTXOs and returns a list of UTXOs to be used in a new transaction
 def input_selector(tx_array):
