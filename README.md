@@ -10,7 +10,7 @@ Planned updates:
 
 ## Setup And Installation
 
-### Linux
+### Linux and Mac
 
 <h4>Clone the Repo</h4>
 
@@ -44,11 +44,6 @@ python main.py
 ```
 
 
-### MacOS
-
-Untested at the moment, but the process <b><i>should be the same</i></b> as the Linux instructions listed above
-
-
 ## Usage
 
 ### Contents
@@ -66,4 +61,4 @@ Untested at the moment, but the process <b><i>should be the same</i></b> as the 
 
 <p>Give your wallet a name and choose whether or not to run the wallet interactively. If you select not to run, the wallet will fetch your balances and then exit the program, otherwise you will see the options listed below.  Simply enter the number shown next to the action you would like to perform.  For example, if you would like to fetch balances, enter "2", and the your wallet will check the balances of all your addresses.</p>
 
-![image](https://user-images.githubusercontent.com/72562693/231816864-e81b9ec4-6e28-4370-bad0-59b4408b5819.png)
+![image](https://user-images.githubusercontent.com/72562693/234404710-d482e83c-a0ca-40eb-ad24-d2d88db34a85.png)
