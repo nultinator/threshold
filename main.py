@@ -303,6 +303,7 @@ while running:
         print("2 Get fee estimates")
         print("3 Get transaction")
         print("4 Remove a Wallet")
+        print("5 Non-interactive Send")
         resp: int = int(input())
         if resp == 0:
             #Build an Electrum wallet
@@ -358,6 +359,26 @@ while running:
                 print(key)
             resp: str = input()
             wallets.pop(resp)
+            config_file = open(".config.json", "w")
+            config_file.write(json.dumps(wallets))
+            config_file.close()
+        elif resp == 5:
+            print("Please enter the name of the wallet you wish to send from")
+            wallet: str = input()
+            available: float = wallet_utils.getwalletbalance(wallets[wallet])
+            print("How much coin do you wish to send?")
+            amount: float = float(input())
+            print("Please enter the address you wish to send to")
+            to_address: str = input()
+            print("Result")
+            try:
+                txid = tx_builder.non_interactive_send(wallets[wallet], amount, to_address)
+                print("Success!", txid)
+            except:
+                print("Transaction failed")
+
+            change_wallet = wallet_utils.getchangeaddress(wallets[wallet])
+            wallets[wallet]["change"].append(change_wallet)
             config_file = open(".config.json", "w")
             config_file.write(json.dumps(wallets))
             config_file.close()

@@ -5,6 +5,7 @@ from typing import Optional
 import json
 import requests
 from os import path
+from bitcoinutils.utils import to_satoshis
 from bloxplorer import bitcoin_explorer, bitcoin_testnet_explorer
 
 #Generate 24 word seed phrases by default
@@ -374,9 +375,13 @@ def getwalletbalance(wallet: dict):
             #pending_balance: float = getpendingbalance(address)
             print(receiving_address, amount, wallet["symbol"])
             #add the balance to our total
-            sum = amount + sum
+            sum: float = amount + sum
+            #Convert the balance to satoshis and truncate anything left over
+            sats: int = sum * 100_000_000
+            #Convert the balance in sats back to a clean btc balance
+            btc = sats/100_000_000
     #return the total balance
-    return sum
+    return btc
 
 #check if an address is testnet
 def is_testnet(address: str):

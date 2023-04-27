@@ -497,3 +497,148 @@ def input_selector(tx_array):
                 continue
     #return the list
     return spends
+
+def non_interactive_send(wallet: dict, amount: float, to_address: str):
+    #figure out which network we're using
+    network: str = wallet["network"]
+    if network == "mainnet":
+        #mainnet block explorer
+        explorer = bitcoin_explorer
+    elif network == "testnet":
+        #testnet block explorer
+        explorer = bitcoin_testnet_explorer
+    setup(network)
+    #Create a false boolean variable for each transaction protocol
+    SegWit: bool = False
+    Legacy: bool = False
+    #Follow SegWit protocol
+    if wallet["path"][0:5] == "m/84'":
+        SegWit: bool = True
+    #Follow legacy protocol
+    elif wallet["path"][0:5] == "m/44'":
+        Legacy: bool = True
+    #Wallet protocol is not supported
+    else:
+        print("Wallet type not supported")
+        return None
+    #get our spendable coins
+    outputs: list = get_all_outputs(wallet)
+    #Get the address to send to
+    #show the maximum amount (i.e. wallet balance)
+    #while our amount is greater than our balance, try again
+    #allow the user to decide which ones to spend
+    #print the coins that we're about to spend
+    #create a list of UTXOs going into the transaction
+    spending = []
+    #create a list of outputs for the transaction
+    outs = []
+    #create a list of private keys to sign with
+    keys = []
+    #create a list of values to sign (Corresponds with our "spending list")
+    values = []
+    #full value of the transaction before the UTXOs are added
+    funded_value: int = 0
+    #make sure our transaction is funded for at least the amount and fee
+    #1000 sats is arbitrary, just to make sure there will absolutely be enough for the fee
+    while funded_value < to_satoshis(amount) + 1000:
+    #iterate through our inputs
+        for utxo in outputs:
+            #get the WIF for each UTXO
+            wif: str = utxo.get("signing_key")
+            #add it to the list of keys
+            keys.append(wif)
+            #get the value, txid and vout of each UTXO
+            value = utxo.get("value")
+            txid = utxo.get("txid")
+            vout = utxo.get("vout")
+            #add the value to our total funded value
+            funded_value += value
+            #add the value to our values list
+            values.append(value)
+            #create the input
+            txin = TxInput(txid, vout)
+            #add the input to our spending list
+            spending.append(txin)
+    #Create an Address object from the receiving address
+    #If we're sending to a legacy address, instantiate a legacy address
+    if to_address[0] == "1" or to_address[0] == "m" or to_address[0] == "n":
+        toAddress = P2pkhAddress(to_address)
+        #Create the output
+        txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    #Default to a Segwit address
+    else:
+        toAddress = P2wpkhAddress(to_address)
+        #Create the output
+        txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    #Create the output for the address
+    #txout = TxOutput(to_satoshis(amount), toAddress.to_script_pub_key())
+    #instantiate the transaction
+    tx = Transaction(spending, outs, has_segwit=True)
+    #add the output to our list of outs
+    outs.append(txout)
+    #show the current size of the transaction
+    #get the current fee rate
+    feerate: float = get_fees(network)
+    #estimate the fee per input
+    estimated_fee: int = (feerate * tx.get_size())
+    #if the estimated fee is too low, bring it to 150 sat per input
+    if estimated_fee < 110:
+        estimated_fee = 150
+    #If this is a legacy transaction, up the fee by 75%, we want it to go through
+    if Legacy:
+        estimated_fee = estimated_fee * 1.75
+    #update the fee by the amount of inputs
+    estimated_fee = estimated_fee * len(spending)
+    #Calculate the change left over
+    change: int = int(funded_value - to_satoshis(amount) - estimated_fee)
+    #create an unused address for the change
+    #If we're on SegWit, send change to a SegWit address
+    if SegWit:
+        changeAddress = P2wpkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2wpkh"])
+        #Tell the user how much change and where it's going to
+    #If we're on Legacy, send change to a Legacy address
+    elif Legacy:
+        changeAddress = P2pkhAddress(wallet_utils.getchangeaddress(wallet)["addresses"]["p2pkh"])
+        #Tell the user how much change and where it's going to
+    else:
+        print("Unsupported Change Address")
+        return None
+    #create an output for the change
+    changeout = TxOutput(change, changeAddress.to_script_pub_key())
+    #add the output to our outs list
+    outs.append(changeout)
+    #update the transaction with the change output
+    tx = Transaction(spending, outs, has_segwit=True)
+    #This is where it gets interesting
+    #enumerate through the list of coins we're spending    
+    for i, utxo in enumerate(spending):
+        #find the corresponding private key in the keys list
+        wif = keys[i]
+        #turn in into a PrivateKey object
+        priv_key = PrivateKey(wif=wif)
+        #get the pubkey from the private key
+        pubkey = priv_key.get_public_key()
+        #sign the UTXO with its corresponding value from the values list we created earlier
+        if SegWit:
+            sig = priv_key.sign_segwit_input(tx, i, Script([
+                "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"])
+            , values[i])
+            #This is SegWit, you have to add a witness to the signature
+            tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+        #Legacy signature
+        elif Legacy:
+            #Get the from address
+            from_addr = P2pkhAddress(pubkey.get_address().to_string())
+            #Sign the output and add the RIPEMD160 if the from address
+            sig = priv_key.sign_input(tx, i, Script([
+                "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
+                "OP_EQUALVERIFY", "OP_CHECKSIG"]))
+            #Get the hex of the public key we're sending from
+            pk = pubkey.to_hex()
+            #Add our signature and the pubkey hex
+            #Nodes need to compare the signature to the public key
+            utxo.script_sig = Script([sig, pk])
+    #Submit the transaction to the network and return the result
+    return str(explorer.tx.post(tx.serialize()).data)
+    
