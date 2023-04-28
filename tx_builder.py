@@ -1,4 +1,5 @@
 import json
+import requests
 import wallet_utils
 
 from bitcoinutils.setup import setup
@@ -446,8 +447,20 @@ def sendmany(wallet: dict):
                 #Add our signature and the pubkey hex
                 #Nodes need to compare the signature to the public key
                 utxo.script_sig = Script([sig, pk])
-        attempt = str(explorer.tx.post(new_tx.serialize()).data)
-        print(attempt)
+        if network == "testnet":
+            url = "https://blockstream.info/testnet/api/tx"
+        else:
+            url = "https://blockstream.info/api/tx"
+        response = requests.post(url, data=tx.serialize())
+        if response.status_code == 200:
+            return response.text
+        else:
+            counter = 0
+            for i in response.text:
+                if i == "{":
+                    return json.loads(response.text[counter:])["message"]
+                else:
+                    counter += 1
 
 def get_tx(txid: str, network: str):
     if network == "mainnet":
@@ -457,7 +470,7 @@ def get_tx(txid: str, network: str):
     else:
         print("Unsupported network")
         return None
-    return explorer.tx.get(txid).data["vin"]
+    return explorer.tx.get(txid).data
     
 #Takes a list of UTXOs and returns a list of UTXOs to be used in a new transaction
 def input_selector(tx_array):
@@ -640,5 +653,19 @@ def non_interactive_send(wallet: dict, amount: float, to_address: str):
             #Nodes need to compare the signature to the public key
             utxo.script_sig = Script([sig, pk])
     #Submit the transaction to the network and return the result
-    return str(explorer.tx.post(tx.serialize()).data)
+    if network == "testnet":
+        url = "https://blockstream.info/testnet/api/tx"
+    else:
+        url = "https://blockstream.info/api/tx"
+    response = requests.post(url, data=tx.serialize())
+    if response.status_code == 200:
+        return response.text
+    else:
+        counter = 0
+        for i in response.text:
+            if i == "{":
+                return json.loads(response.text[counter:])["message"]
+            else:
+                counter += 1
+    
     

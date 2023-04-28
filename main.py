@@ -236,7 +236,7 @@ while running:
         resp: int = int(input())
         if resp == 0:
             #Follow "Simple Send" protocol (build transaction automatically)
-            tx_builder.sendmany(choice)
+            print(tx_builder.sendmany(choice))
         elif resp == 1:
             #User creates the transaction manually
             tx_builder.multi_input_transaction(choice)
@@ -366,16 +366,13 @@ while running:
             print("Please enter the name of the wallet you wish to send from")
             wallet: str = input()
             available: float = wallet_utils.getwalletbalance(wallets[wallet])
-            print("How much coin do you wish to send?")
+            print("How much coin do you wish to send? Max:", available)
             amount: float = float(input())
             print("Please enter the address you wish to send to")
             to_address: str = input()
             print("Result")
-            try:
-                txid = tx_builder.non_interactive_send(wallets[wallet], amount, to_address)
-                print("Success!", txid)
-            except:
-                print("Transaction failed")
+            attempt = tx_builder.non_interactive_send(wallets[wallet], amount, to_address)
+            print(attempt)
 
             change_wallet = wallet_utils.getchangeaddress(wallets[wallet])
             wallets[wallet]["change"].append(change_wallet)
