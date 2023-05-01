@@ -87,10 +87,10 @@ for key, value in wallets.items():
 #Runtime loop...Let the user choose what to do, and then restart the loop
 while running:
     print("What would you like to do?")
-    print("1 Create a New Wallet")
+    print("1 Create/Restore Wallet")
     print("2 Check Address balances")
-    print("3 Create a Testnet Wallet")
-    print("4 Restore a Mainnet Wallet")
+    print("3 Remove a Wallet")
+    print("4 Block Explorer")
     print("5 Generate Receiving Address")
     print("6 Send a transaction")
     print("7 Export Wallet")
@@ -104,10 +104,23 @@ while running:
         print("Please choose a name for your new wallet")
         #user gives the wallet a name
         name: str = input()
-        new_wallet: dict = wallet_utils.create_wallet()
+        #user chooses the currency
+        print("Please enter a ticker name, examples: BTC, BTCTEST")
+        ticker: str = input().upper()
+        print("Restore from seed phrase? (Leave blank to generate a new one)")
+        mnemonic: str = input()
+        #Choose derivation
+        print("Is this a Legacy wallet?")
+        resp: str = input()
+        if resp.lower() == "y":
+            derivation = 44
+        else:
+            derivation = 84
+        #create the wallet
+        new_wallet = wallet_utils.new_wallet(ticker, mnemonic, derivation)
         #add the wallet to our existing wallets
-        wallets[name] = new_wallet
-        print(wallets)
+        wallets[name] = wallet_utils.create_wallet_set(new_wallet)
+        print(new_wallet)
         #save the wallet file
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
@@ -123,50 +136,39 @@ while running:
             print("Total Balance", total_balance, value["symbol"])
     #Create a testnet wallet
     elif resp == 3:
-        print("Generate a testnet wallet")
-        print("Please enter a name for your wallet")
-        name: str = input()
-        #append the wallet name with '_TESTNET'
-        walletname: str = "{}_TESTNET".format(name)
-        print(walletname)
-        #ask if the user wants to create from a seed phrase
-        print("Create from seed phrase? Y/n")
+        print("Remove a wallet")
+        print("Please enter the name off the wallet you wish to remove")
+        for key in wallets.keys():
+            print(key)
         resp: str = input()
-        if resp.lower() == "y":
-            #create from seed phrase
-            print("Please input a seed phrase")
-            seed_phrase: str = input()
-            test_wallet: dict = wallet_utils.seed_testnet_wallet(seed_phrase)
-        else:
-            #default to building a new wallet
-            test_wallet: dict = wallet_utils.create_testnet_wallet()
-        #Save wallet to the wallet file
-        wallets[walletname] = test_wallet
+        wallets.pop(resp)
         config_file = open(".config.json", "w")
         config_file.write(json.dumps(wallets))
         config_file.close()
-        print("You can fund your new testnet wallet at one of the addresses below")
-        #tell the user where to find testnet bitcoin
-        print("https://bitcoinfaucet.uo1.net/send.php")
-        print("https://testnet-faucet.com/btc-testnet/")
     #Restore a wallet from seed phrase
     elif resp == 4:
-        print("Fetching Wallet Info")
-        print("Please enter your private key or seed phrase:")
-        # have the user enter either a seed phrase, private key, or WIF private key
-        key: str = input()
-        #rebuild the wallet from the user's restore keys
-        wallet: dict = wallet_utils.restore_wallet(key)
-        print("Please give your wallet a name")
-        name: str = input()
-        wallets[name] = wallet
-        #Save the wallet file
-        config_file = open(".config.json", "w")
-        config_file.write(json.dumps(wallets))
-        config_file.close()
+        print("Block Explorer")
+        print("What would you like to do?")
+        print("0 Get an unconfirmed balance")
+        print("1 Lookup a transaction")
+        resp: int = int(input())
+        if resp == 0:
+            print("Please enter an address")
+            address: str = input()
+            print(wallet_utils.getpendingbalance(address))
+        elif resp == 1:
+            print("Please enter a txid")
+            txid: str = input()
+            print("Is this a testnet transaction?")
+            resp: str = input()
+            if resp.lower() == "y":
+                network = "testnet"
+            else:
+                network = "testnet"
+            print(tx_builder.get_tx(txid, network))
     #Generate Child Wallets
     elif resp == 5:
-        print("Generate Reciving Address")
+        print("Generate Receiving Address")
         print("Please choose one of the wallets below")
         #have the user select a wallet
         for wallet in wallets.keys():
@@ -298,32 +300,14 @@ while running:
     elif resp == 10:
         #Display the experimental features
         print("Available Features:")
-        print("0 Create Wallet Set")
         print("1 Unconfirmed Balance")
         print("2 Get fee estimates")
         print("3 Get transaction")
         print("4 Remove a Wallet")
         print("5 Non-interactive Send")
+        print("6 Create unsigned transaction")
         resp: int = int(input())
-        if resp == 0:
-            #Build an Electrum wallet
-            print("Please select a wallet")
-            for wallet in wallets:
-                print(wallet)
-            resp: str = input()
-            #find the selected wallet in memory
-            wallet = wallets[resp]
-            #Build the wallet set
-            new_wallet = wallet_utils.create_wallet_set(wallet)
-            #Get the balance of our new addresses
-            wallet_utils.getwalletbalance(new_wallet)
-            #Update the wallet we chose
-            wallet = new_wallet
-            #Save the wallet file
-            config_file = open(".config.json", "w")
-            config_file.write(json.dumps(wallets))
-            config_file.close()
-        elif resp == 1:
+        if resp == 1:
             #Get pending balance
             print("Please enter an address")
             resp: str = input()
@@ -379,6 +363,15 @@ while running:
             config_file = open(".config.json", "w")
             config_file.write(json.dumps(wallets))
             config_file.close()
+        elif resp == 6:
+            print("Please select a wallet")
+            resp: str = input()
+            wallet = wallets[resp]
+            print("Please enter an address to send to")
+            to_address: str = input()
+            print("Please enter an amount to send")
+            amount: float = float(input())
+            print(tx_builder.create_unsigned_tx(wallet, amount, to_address))
         else:
             print("Sorry, your choice is not valid")
     else:

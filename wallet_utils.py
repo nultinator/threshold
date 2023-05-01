@@ -46,7 +46,7 @@ def create_wallet():
 def create_wallet_set(wallet: dict):
     for i in range(1, 31):
         wallet["receiving"].append(gethardaddress(wallet))
-        wallet["change"].append(gethardaddress(wallet))
+        wallet["change"].append(getchangeaddress(wallet))
     return wallet
 
 
@@ -103,26 +103,19 @@ def clean_addresses(wallet: dict):
 
 #Generates NON-HARDENED child wallets based on the root xpublic key
 #This function may need reworked, it was created before we could create hardened children
-def getnewaddress(wallet: dict):
-    symbol = wallet["symbol"]
-    seed_phrase = wallet["mnemonic"]
-    pubkey = wallet["root_xpublic_key"]
-    index = len(wallet["children"])
-    print("Current children:", index)
-    hdwallet: HDWallet = BIP44HDWallet(symbol=symbol)
-    hdwallet.from_xpublic_key(xpublic_key=pubkey)
-    hdwallet.from_index(LEGACY)
-    hdwallet.from_index(0)
-    hdwallet.from_index(0)
-    hdwallet.from_index(index+1)
-    hdwallet.from_index(0)
+def getnewaddress(xpub: str, symbol: str):
+    hdwallet: HDWallet = HDWallet(symbol=symbol)
+    hdwallet.from_xpublic_key(xpublic_key=xpub)
+    #hdwallet.from_index(SEGWIT_NATIVE)
+    #hdwallet.from_index(0)
+    #hdwallet.from_index(0)
+
+    #hdwallet.from_index(0)
+    #hdwallet.from_index(1)
+
     dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
     loads = json.loads(dumps)
-    address = loads["addresses"]["p2pkh"]
-    if address not in wallet["children"]:
-        return address
-    else:
-        return "Address already in wallet... We may have a bug"
+    return loads
 
 #Generate a hardened receiving address
 def gethardaddress(wallet: dict):
@@ -348,7 +341,8 @@ def getbalance(address: str):
         data = bitcoin_testnet_explorer.addr.get(address).data["chain_stats"]
         return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
     else:
-        return "address {} not a valid BTC or BTCTEST address".format(address)
+        print("address {} not a valid BTC or BTCTEST address".format(address))
+        return 0
 #Retrueve the full balance of a wallet
 def getwalletbalance(wallet: dict):
     #This sum below will be the total balance of the wallet
@@ -377,9 +371,9 @@ def getwalletbalance(wallet: dict):
             #add the balance to our total
             sum: float = amount + sum
             #Convert the balance to satoshis and truncate anything left over
-            sats: int = sum * 100_000_000
             #Convert the balance in sats back to a clean btc balance
-            btc = sats/100_000_000
+    sats: int = sum * 100_000_000
+    btc: float = sats/100_000_000
     #return the total balance
     return btc
 
@@ -441,7 +435,6 @@ def seed_testnet_wallet(seed_phrase: str):
 #Create a testnet wallet from entropy
 def create_testnet_wallet():
     STRENGTH: int = 256
-    ENTROPY: str = generate_entropy(strength=STRENGTH)
     hdwallet: HDWallet = HDWallet(symbol="BTCTEST", use_default_path=False)
     hdwallet.from_entropy(entropy=ENTROPY, language="english", passphrase="")
     LEGACY: int = 44
@@ -451,6 +444,33 @@ def create_testnet_wallet():
     #segwit by default
     hdwallet.from_index(SEGWIT_NATIVE, hardened=True)
     hdwallet.from_index(1, hardened=True)
+    hdwallet.from_index(0, hardened=True)
+    #the last two are not hardened
+    hdwallet.from_index(0)
+    hdwallet.from_index(0)
+    dumps = json.dumps(hdwallet.dumps(), indent=4, ensure_ascii=False)
+    loads = json.loads(dumps)
+    #remove unnecessary addresses
+    clean_addresses(loads)
+    #save space for child wallets
+    loads["receiving"] = []
+    loads["change"] = []
+    return loads
+
+def new_wallet(symbol: str, mnemonic: str, derivation: int):
+    ENTROPY: str = generate_entropy(strength=STRENGTH)
+    hdwallet: HDWallet = HDWallet(symbol=symbol, use_default_path=False)
+    if len(mnemonic) > 0:
+        hdwallet.from_mnemonic(mnemonic)
+    else:
+        hdwallet.from_entropy(entropy=ENTROPY, language="english", passphrase="")
+    #the first three indexes of derivation are hardened
+    #segwit by default
+    hdwallet.from_index(derivation, hardened=True)
+    if symbol == "BTCTEST":
+        hdwallet.from_index(1, hardened=True)
+    else:
+        hdwallet.from_index(0, hardened=True)
     hdwallet.from_index(0, hardened=True)
     #the last two are not hardened
     hdwallet.from_index(0)
