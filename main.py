@@ -151,6 +151,7 @@ while running:
         print("What would you like to do?")
         print("0 Get an unconfirmed balance")
         print("1 Lookup a transaction")
+        print("2 List Unspent")
         resp: int = int(input())
         if resp == 0:
             print("Please enter an address")
@@ -166,6 +167,10 @@ while running:
             else:
                 network = "testnet"
             print(tx_builder.get_tx(txid, network))
+        elif resp == 2:
+            print("Please input an address")
+            address: str = input()
+            print(wallet_utils.listunspent(address))
     #Generate Child Wallets
     elif resp == 5:
         print("Generate Receiving Address")

@@ -4,10 +4,10 @@ import wallet_utils
 
 from bitcoinutils.setup import setup
 from bitcoinutils.utils import to_satoshis
-from bitcoinutils.transactions import Transaction, TxInput, TxOutput
+from bitcoinutils.transactions import Transaction, TxInput, TxOutput, Sequence
 from bitcoinutils.keys import P2pkhAddress, PrivateKey, P2wpkhAddress
 from bitcoinutils.script import Script
-from bitcoinutils.constants import SIGHASH_ALL, SIGHASH_ANYONECANPAY
+from bitcoinutils.constants import SIGHASH_ALL, SIGHASH_ANYONECANPAY, TYPE_REPLACE_BY_FEE
 
 
 from bloxplorer import bitcoin_explorer, bitcoin_testnet_explorer
@@ -132,7 +132,9 @@ def multi_input_transaction(wallet: dict):
         #add the value to our values list
         values.append(value)
         #create the input
-        txin = TxInput(txid, vout)
+        seq = Sequence(TYPE_REPLACE_BY_FEE)
+        txin = TxInput(txid, vout, sequence=seq.for_input_sequence())
+        #txin.sequence = TYPE_REPLACE_BY_FEE
         #add the input to our spending list
         spending.append(txin)
     #If we're sending to a Legacy address, make a p2pkh object out of it
@@ -198,7 +200,7 @@ def multi_input_transaction(wallet: dict):
         pubkey = priv_key.get_public_key()
         #sign the UTXO and the corresponding value in the values list
         if Segwit:
-            sig = priv_key.sign_segwit_input(tx, i, Script([
+            sig = priv_key.sign_segwit_input(tx, i, Script([seq.for_script(),
                 "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"])
             , values[i])
@@ -208,7 +210,7 @@ def multi_input_transaction(wallet: dict):
             #Get the address we're sending from
             from_addr = P2pkhAddress(pubkey.get_address().to_string())
             #Sign it with the RIPEMD160 hash of the from address
-            sig = priv_key.sign_input(tx, i, Script([
+            sig = priv_key.sign_input(tx, i, Script([seq.for_script(),
                 "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"]))
             #Create a string of the from address pubkey hex
@@ -300,7 +302,8 @@ def sendmany(wallet: dict):
             #add the value to our values list
             values.append(value)
             #create the input
-            txin = TxInput(txid, vout)
+            seq = Sequence(TYPE_REPLACE_BY_FEE)
+            txin = TxInput(txid, vout, sequence=seq.for_input_sequence())
             #add the input to our spending list
             spending.append(txin)
     #Create an Address object from the receiving address
@@ -408,12 +411,13 @@ def sendmany(wallet: dict):
     except:
         print("Transaction failed")
     print("Would you like to attempt RBF?(Replace by fee) Y/n")
+    print("WARNING: RBF is currently only supported for Legacy wallets")
     resp: str = input()
     if resp.lower() == "y":
         outs.clear()
         outs.append(txout)
         print("Original fee:", estimated_fee)
-        print("Minimum RBF: ", estimated_fee + 208)
+        print("Minimum RBF: ", estimated_fee * 2)
         fee: int = int(input())
         change = int(funded_value - to_satoshis(amount) - fee)
         new_changeout = TxOutput(change, changeAddress.to_script_pub_key())
@@ -434,7 +438,7 @@ def sendmany(wallet: dict):
                 "OP_EQUALVERIFY", "OP_CHECKSIG"])
             , values[i])
             #This is SegWit, you have to add a witness to the signature
-                new_tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+            #    new_tx.witnesses.append(Script([sig, pubkey.to_hex()]))
             #Legacy signature
             elif Legacy:
                 #Get the from address
