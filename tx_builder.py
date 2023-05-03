@@ -200,7 +200,7 @@ def multi_input_transaction(wallet: dict):
         pubkey = priv_key.get_public_key()
         #sign the UTXO and the corresponding value in the values list
         if Segwit:
-            sig = priv_key.sign_segwit_input(tx, i, Script([seq.for_script(),
+            sig = priv_key.sign_segwit_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"])
             , values[i])
@@ -210,7 +210,7 @@ def multi_input_transaction(wallet: dict):
             #Get the address we're sending from
             from_addr = P2pkhAddress(pubkey.get_address().to_string())
             #Sign it with the RIPEMD160 hash of the from address
-            sig = priv_key.sign_input(tx, i, Script([seq.for_script(),
+            sig = priv_key.sign_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"]))
             #Create a string of the from address pubkey hex
@@ -368,7 +368,7 @@ def sendmany(wallet: dict):
     #update the transaction with the change output
     tx = Transaction(spending, outs, has_segwit=True)
     #This is where it gets interesting
-    #enumerate through the list of coins we're spending    
+    #enumerate through the list of coins we're spending
     for i, utxo in enumerate(spending):
         #find the corresponding private key in the keys list
         wif = keys[i]
@@ -411,19 +411,27 @@ def sendmany(wallet: dict):
     except:
         print("Transaction failed")
     print("Would you like to attempt RBF?(Replace by fee) Y/n")
-    print("WARNING: RBF is currently only supported for Legacy wallets")
     resp: str = input()
+    #User has opted to replace the transaction
     if resp.lower() == "y":
+        #clear the outs
         outs.clear()
+        #add the first txout back in
         outs.append(txout)
+        #Display the original transaction fee
         print("Original fee:", estimated_fee)
+        #Double it to attempt RBF
         print("Minimum RBF: ", estimated_fee * 2)
+        #User decides the new transaction fee
         fee: int = int(input())
+        #Recalculate the the change
         change = int(funded_value - to_satoshis(amount) - fee)
+        #Update our change output to accomodate the new fee
         new_changeout = TxOutput(change, changeAddress.to_script_pub_key())
+        #Add it back in to our list of outputs
         outs.append(new_changeout)
-    
-        new_tx = Transaction(spending, outs, has_segwit=True)
+        #Update the transaction
+        tx = Transaction(spending, outs, has_segwit=True)
         for i, utxo in enumerate(spending):
             #find the corresponding private key in the keys list
             wif = keys[i]
@@ -433,18 +441,18 @@ def sendmany(wallet: dict):
             pubkey = priv_key.get_public_key()
             #sign the UTXO with its corresponding value from the values list we created earlier
             if SegWit:
-                sig = priv_key.sign_segwit_input(new_tx, i, Script([
+                sig = priv_key.sign_segwit_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", pubkey.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"])
             , values[i])
             #This is SegWit, you have to add a witness to the signature
-            #    new_tx.witnesses.append(Script([sig, pubkey.to_hex()]))
+                tx.witnesses.append(Script([sig, pubkey.to_hex()]))
             #Legacy signature
             elif Legacy:
                 #Get the from address
                 from_addr = P2pkhAddress(pubkey.get_address().to_string())
                 #Sign the output and add the RIPEMD160 if the from address
-                sig = priv_key.sign_input(new_tx, i, Script([
+                sig = priv_key.sign_input(tx, i, Script([
                 "OP_DUP", "OP_HASH160", from_addr.to_hash160(),
                 "OP_EQUALVERIFY", "OP_CHECKSIG"]))
                 #Get the hex of the public key we're sending from
@@ -452,17 +460,24 @@ def sendmany(wallet: dict):
                 #Add our signature and the pubkey hex
                 #Nodes need to compare the signature to the public key
                 utxo.script_sig = Script([sig, pk])
+        #Here we use acutal requests to get full api responses
         if network == "testnet":
             url = "https://blockstream.info/testnet/api/tx"
         else:
             url = "https://blockstream.info/api/tx"
+        #Attempt to repost the transaction
         response = requests.post(url, data=tx.serialize())
+        #200 means success, response should be a txid
         if response.status_code == 200:
             return response.text
+        #If we receive an error, pull it from the response and display to the user
         else:
+            #the counter is used for iterating through characters
             counter = 0
             for i in response.text:
+                #Continue until we find the first "{"
                 if i == "{":
+                    #We found the message, return it to the user
                     return json.loads(response.text[counter:])["message"]
                 else:
                     counter += 1
