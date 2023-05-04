@@ -111,6 +111,15 @@ You may elect to use the recommended fee or to enter a custom amount.  After cre
 
 ![image](https://user-images.githubusercontent.com/72562693/236247754-f08ddb70-b16c-4f3d-8160-93784210beb2.png)
 
+<h4>Replace By Fee</h4>
+<p>Upon submitting a transaction, you'll be given the option to use fee replacement to increase the fee and hopefully speed
+up your transaction time.  You will see your original fee displayed along with a minimum recommended fee to attempt RBF.
+Enter your new desired fee, and if successful, a new TXID will be printed to the console.  You can see the new fee, <i>500</i>
+and the new TXID, <i>cab80b85d6fb4d939c6cafa78480a17b2da649f2b19f2cc69e52c6c951173434</i> highlighted in the output below</p>
+
+![Screenshot from 2023-05-04 11-29-10](https://user-images.githubusercontent.com/72562693/236256091-747e44b0-d3a1-441e-910f-9afb6e003356.png)
+
+
 ### Export Wallet
 
 <p>When exporting a wallet, you will display both your seed phrase and "wif" private key as both text and a QR code as you can see below.</p>
