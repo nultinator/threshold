@@ -61,8 +61,9 @@ python main.py
 
 <p>On the first run, you will be automatically prompted to set up a wallet</p>
 
+![image](https://user-images.githubusercontent.com/72562693/236253273-b2bd44d5-b0b3-4fd3-a89f-acfb3a38728d.png)
 
-![image](https://user-images.githubusercontent.com/72562693/231815704-d9770263-543c-4a1c-951a-7bb3903af6c9.png)
+
 
 <p>Give your wallet a name and enter a ticker name</p>.  
 
