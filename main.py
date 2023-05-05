@@ -45,12 +45,12 @@ while not config:
         resp: int = int(input())
         if resp == 1:
             #create a new wallet
-            new_wallet: dict = wallet_utils.create_wallet()
+            new_wallet: dict = wallet_utils.new_wallet("BTC", "", wallet_utils.SEGWIT_NATIVE)
         elif resp == 2:
             print("Please enter a private key or seed phrase")
             resp: str = input()
             #restore an existing wallet
-            new_wallet: dict = wallet_utils.restore_wallet(resp)
+            new_wallet: dict = wallet_utils.create_wallet_set(wallet_utils.new_wallet("BTC", resp, wallet_utils.SEGWIT_NATIVE))
         else:
             #Invalid input, make the user try again
             print("Not a valid response, please try again")
@@ -119,7 +119,10 @@ while running:
         #create the wallet
         new_wallet = wallet_utils.new_wallet(ticker, mnemonic, derivation)
         #add the wallet to our existing wallets
-        wallets[name] = wallet_utils.create_wallet_set(new_wallet)
+        if len(mnemonic) > 0:
+            wallets[name] = wallet_utils.create_wallet_set(new_wallet)
+        else:
+            wallets[name] = new_wallet
         print(new_wallet)
         #save the wallet file
         config_file = open(".config.json", "w")
