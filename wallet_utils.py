@@ -332,14 +332,27 @@ def getpendingbalance(address: str):
 def getbalance(address: str):
     #If we're on mainnet, use the mainnet explorer
     if address[0:3] == "bc1" or address[0] == "1" or address[0] == "3":
-        data = bitcoin_explorer.addr.get(address).data["chain_stats"]
         #return the balance denoted in BTC, not sats
-        return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+        try:
+            data = bitcoin_explorer.addr.get(address, timeout=(20, 20)).data["chain_stats"]
+        #except (ReadTimeout, bloxplorer.exceptions.BlockStreamClientTimeout):
+        except:
+            print("Server Error, please check your balance again in a few minutes")
+            return 0
+        else:
+            return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+
     #If we're on testnet, use the testnet explorer
     elif address[0:3] == "tb1" or address[0] =="m" or address[0] == "n" or address[0] == "2":
         #return the balance denoted in BTCTEST, not sats
-        data = bitcoin_testnet_explorer.addr.get(address).data["chain_stats"]
-        return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+        try:
+            data = bitcoin_testnet_explorer.addr.get(address, timeout=(20, 20)).data["chain_stats"]
+        except:
+            print("Server error, please check your balance again in a few minutes")
+            return 0
+        else:
+            return (data["funded_txo_sum"] - data["spent_txo_sum"])/100_000_000
+
     else:
         print("address {} not a valid BTC or BTCTEST address".format(address))
         return 0
