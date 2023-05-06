@@ -2,161 +2,141 @@
 
 The following document is a guide on setup and usage of this Python implementation of a hierarchical deterministic Bitcoin wallet (HD Wallet). 
 
-Planned updates:
-
-* Build and broadcast a successful BTC transaction using multiple inputs and two outputs (target address & change address). This should be achieved for legacy, p2sh, and bech32 addresses. 
-* Demonstrate the ability to successfully recover a wallet that was created by this HD Wallet program, on either an Electrum or hardware wallet (e.g. Trezor T or Ledger Nano). This should be achieved for legacy, p2sh, and bech32 addresses. 
 
 
-## Setup
+## Setup And Installation
 
-### Linux
+### Linux and Mac
 
-Setting up the Python HD Wallet in a new AWS EC2 Linux instance environment:
+<h4>Clone the Repo</h4>
 
-1) After logging into your instance, run `sudo yum update -y` and `sudo yum install git -y` to update the instance and install git. 
-2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. 
-3) Run `ls -la` and double check the directory `Threshold-HD-Wallet` exists. 
-4) Install the latest version of Python 3 by running `sudo yum install python37`. Run `python3 --version` to ensure you have the latest version of Python 3 installed. 
-5) Run `python3 get-pip.py --user` to install pip. 
-6) Once the latest version of pip has been installed, navigate to the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` sub-directory. Install Python virtual environment by running `pip install virtualenv --user`.
-7) Activate the virtual environment by running `. .venv/bin/activate`.
-8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
-9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
+```
+git clone -b dev https://github.com/nultinator/threshold
+```
 
-### MacOS
+<h4>Installation</h4>
+<p>First we hop into the "threshold" directory</p>
 
-Setting up the Python HD Wallet on your MacOS laptop:
+```
+cd threshold
+```
 
-1) Ensure you have the latest versions of Python 3 and pip installed. 
-2) Run `git clone https://github.com/tycm4109/Threshold-HD-Wallet`. 
-3) Navigate to the `Threshold-HD-Wallet` directory and then into the `python_HD_wallet` sub-directory. Install Python virtual environment by running `pip install virtualenv --user`.
-7) Activate the virtual environment by running `. .venv/bin/activate`.
-8) Install required Python modules from the requirements.txt file by running `pip install -r requirements.txt`.
-9) Run `python3 wallet.py` to pull up the Python Wallet commands menu. 
+<p>Next we allow the install script to run as a program</p>
+
+```
+chmod +x install.sh
+```
+
+<p>Run the installation</p>
+
+```
+./install.sh
+```
+
+<p>Run the main program</p>
+
+```
+python main.py
+```
 
 
 ## Usage
 
+![image](https://user-images.githubusercontent.com/72562693/236236145-f2587811-b479-4b4c-996a-1abd5defd2f6.png)
+
+
 ### Contents
 
 * [Create a New Wallet](#create-a-new-wallet)
-* [Check Wallet Balance](#check-wallet-balance)
-* [Deposit BTC](#deposit-btc)
-* [Withdraw BTC](#withdraw-btc)
-* [Sync Wallet Balance](#sync-wallet-balance)
-* [Display Transactions](#display-transactions)
-* [Recover Wallet](#recover-wallet)
-* [Display Wallet Tree Hierarchy](#display-wallet-tree)
-* [Delete an Existing Wallet](#delete-existing-wallet)
+* [Check Balances](#check-balances)
+* [Remove a Wallet](#remove-a-wallet)
+* [Block Explorer](#block-explorer)
+* [Generate a Receiving Address](#generate-a-receiving-address)
+* [Send a Transaction](#send-a-transaction)
+* [Export Wallet](#export-wallet)
+
 
 
 ### Create a New Wallet
 
-```
-python3 wallet.py create-wallet
-```
+<p>On the first run, you will be automatically prompted to set up a wallet</p>
 
-**Options**
-
-| Options | Arguments | Description |
-|---------|-----------|-------------|
-| --type  | legacy    | Create a wallet with legacy addresses (addresses starting with "1") |
-|         | p2sh      | Create a wallet with pay-to-script hash addresses (addresses starting with "3") |
-| --password| custom text | Binds a custom password to this wallet. This password is needed for wallet recovery. | 
-
-The create-wallet command creates a local wallet and outputs the 24-word mnemonic required for wallet recovery. This command also allows the user to optionally add in a password for extra security. The password can be any combination of numbers, letters, and special characters, as long as it does not contain the exact same characters as linux/shell commands (i.e. && or ||). If a local wallet already exists in the user's directory, this command will not create a new wallet unless the user deletes the wallet directory containing the *wallet.pkl* and *masterkey.pkl* files. 
-
-The following animation shows the process of creating a new p2sh address type wallet with a user designated password of *12345_%NewWallet*. The *deposit* command then displays a new receiving child address and the *tree* command displays the entire tree hierarchy of the wallet:
-
-![](https://github.com/tycm4109/Threshold-HD-Wallet/blob/main/Readme%20GIFs/create_wallet.gif)
+![image](https://user-images.githubusercontent.com/72562693/236253273-b2bd44d5-b0b3-4fd3-a89f-acfb3a38728d.png)
 
 
-### Check Wallet Balance
 
-```
-python3 wallet.py balance
+<p>Give your wallet a name and enter a ticker name</p>.  
 
-BTC Balance: 0.0
-```
-
-For an existing wallet, the `balance` command outputs the wallet balance in BTC.
+![image](https://user-images.githubusercontent.com/72562693/236238666-c17be462-2170-41c4-b4cb-9ae375e0d57f.png)
 
 
-### Deposit BTC
+<p>You may input a seed phrase to restore an existing wallet or create a new wallet from scratch.  Your first wallet will be created with one address and generate new addresses as you use them. After creating your initial wallet, you may select <b>1</b> to create or restore additional wallets.  When creating additional wallets, your first 30 change and receiving addresses will be generated and scanned for existing balances.  You can see an example below.</p>
 
-```
-python3 wallet.py deposit
+### Check Balances
 
-Send only BTC to this address: 18LMcFA4C5ybAPchb4po1W8cQPHeue8SwW
-```
+![image](https://user-images.githubusercontent.com/72562693/236239837-839369d1-f395-4f64-8703-e8c3301a5d17.png)
 
-For an existing wallet, you can generate a child BTC address for deposits. New child BTC addresses are not generated unless the previous index child BTC address already had UTXOs on the blockchain.
+### Remove a Wallet
 
+<p> You will be prompted to enter the name of the wallet and upon entering it, the wallet will be removed.  As you can see below,
+entering the name <i>"exodus"</i> removes the wallet with the same name.</p>
 
-### Withdraw BTC
+![image](https://user-images.githubusercontent.com/72562693/236241553-65719f99-2fc1-4d5e-af60-1f73585fa751.png)
 
-In development. 
+### Block Explorer
 
-### Sync Wallet Balance
+<p>With this option, you may lookup the unconfirmed balance of an address, details about a specific transaction,
+or lookup the coins held by an individual address.</p>
 
-```
-python3 wallet.py sync-wallet
-
-Wallet sync successfully completed.
-```
-
-For an existing wallet, the wallet needs to be sync'ed with the blockchain in order to display the correct wallet balance. This would be similar to a "Refresh" feature on a front-end client. However, the `balance` command automatically syncs the wallet with the latest blockchain information prior to outputting the wallet balance in BTC, so perhaps this feature can be deprecated at some point. 
-
-### Display Transactions
-
-```
-python3 wallet.py display-txn
-
-Wallet Transaction History:
-
-Transaction ID: fe21250e20d47af1a60f70f6ff500adc36632fb8447eaa384ebff90260b269e1   BTC Amount: 0.000125
- 
-Complete
-```
-
-For an existing wallet, this command displays past transaction IDs associated with deposits and withdrawals in the wallet, as well as the BTC amount transacted. The list is not ordered in any way, however, all receiving addresses are shown before the change addresses. 
+![image](https://user-images.githubusercontent.com/72562693/236248377-36f50ec1-f807-40e8-a217-a442752ecbed.png)
 
 
-### Recover Wallet
 
-```
-python3 wallet.py recover-wallet --recovery_phrase 'horn undo scissors chat burden pepper horror ill leisure seed coil frame ranch stock emotion puzzle game hint pact organ badge observe approve clarify'  
-```
+### Generate a Receiving Address
+<p>As is recommended when receiving Bitcoin, you should always use a fresh wallet. <b>5</b> will generate a new receiving wallet for you.
+Simply enter the name of the parent wallet you wish to use.  Next a new wallet will be generated and you will be given the option to
+display the receiving address as a QR code.
+</p>
 
-| Options | Arguments | Description |
-|---------|-----------|-------------|
-| --type  | legacy    | Create a wallet with legacy addresses (addresses starting with "1") |
-|         | p2sh      | Create a wallet with pay-to-script hash addresses (addresses starting with "3") |
-| --recovery_phrase | custom text | Required argument. Enter your 24-word mnemonic in '' to recover your wallet. |
-| --password| custom text | Binds a custom password to this wallet. If a password was used in wallet creation, then this password is required for wallet recovery. | 
+![image](https://user-images.githubusercontent.com/72562693/236243806-64adcafb-cf25-4852-bbe1-b0ce63b3e522.png)
 
 
-This function recovers a wallet locally using the 24-word mnemonic, and returns the BTC balance if wallet recovery was successful. If an optional password was used in creating the wallet, then the password is required as well. 
+### Send a Transaction
 
-Keep in mind the command line may hang for a while after successfully running the command because the recovery process can take several minutes, depending on how many child addresses had UTXOs. Similar to many other hierarchical deterministic wallets, this wallet has a 20 address gap limit in recovering child addresses. In practice, this may not be necessary since new child addresses are not created unless the previously created child address has UTXOs. 
+<p>When sending a transaction, you will give the option to use either <strong>Simple Send</strong> or <strong>Create a Raw Transaction</strong>.
+When using <strong>Simple Send</strong>, the coins you are spending will be automatically selected for you, when creating a raw transaction,
+you select the individual coins going into the transaction.  Next you will be promtpted to enter an address to send to and an amount to send.
+A fresh change wallet will be automatically generated for you. The wallet calculates a recommended fee based on current network conditions.
+You may elect to use the recommended fee or to enter a custom amount.  After creating the transaction, the wallet will display the TXID of your new transaction and submit it to the network.  If the transaction was successful, the server will respond with an identical TXID as you can see below.</p>
 
-![](https://github.com/tycm4109/Threshold-HD-Wallet/blob/main/Readme%20GIFs/wallet_recovery.gif)
+![image](https://user-images.githubusercontent.com/72562693/236247754-f08ddb70-b16c-4f3d-8160-93784210beb2.png)
 
+<h4>Replace By Fee</h4>
+<p>Upon submitting a transaction, you'll be given the option to use fee replacement to increase the fee and hopefully speed
+up your transaction time.  You will see your original fee displayed along with a minimum recommended fee to attempt RBF.
+Enter your new desired fee, and if successful, a new TXID will be printed to the console.  You can see the new fee, <i>500</i>
+and the new TXID, <i>cab80b85d6fb4d939c6cafa78480a17b2da649f2b19f2cc69e52c6c951173434</i> highlighted in the output below</p>
 
-### Display Wallet Tree
-
-```
-python3 wallet.py tree
-```
-
-For an existing wallet, this command displays the hierarchical tree of the wallet.
-
-
-### Delete Existing Wallet
-
-To create a new wallet or recover an existing wallet from a 24-word mnemonic, users need to ensure no local wallet file already exists. To delete an existing local wallet, simply delete the *wallet* directory containing the *wallet.pkl* and *masterkey.pkl* files.  
+![Screenshot from 2023-05-04 11-29-10](https://user-images.githubusercontent.com/72562693/236256091-747e44b0-d3a1-441e-910f-9afb6e003356.png)
 
 
+### Export Wallet
+
+<p>When exporting a wallet, you will display both your seed phrase and "wif" private key as both text and a QR code as you can see below.</p>
+
+<h4>Seed Phrase</h4>
+
+![image](https://user-images.githubusercontent.com/72562693/236250101-4b21383e-8985-4740-926f-303156e71bfe.png)
+
+<h4>Private Key</h4>
+
+<p>
+<strong>DISCLAIMER:</strong> it is highly recommended to back up your seed phrase.  You can derive new wallets from seed phrase.
+<strong>YOU CAN NOT DERIVE NEW WALLETS FROM A WIF PRIVATE KEY!!!</strong>  In the future, should users express interest in it,
+options could be added to export your <i>Root XPrivate Key</i> but at the moment, this is not an industry standard so it will not be included 
+in the first release.
+</p>
+
+![image](https://user-images.githubusercontent.com/72562693/236250339-a2762029-824f-4b1e-9207-29bb68aa622d.png)
 
 
